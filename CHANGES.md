@@ -67,3 +67,9 @@ Substitua `<mysql-host>` por `ova_mysql` quando executar a partir do container d
 - Atualizar o frontend para enviar `read_time` e `perc_scrolled` para `ova_progress` e enviar tentativas para `attempts`.
 
 Se quiser, eu gero o Pull Request com essas mudanças agora e incluo instruções de rollback. 
+
+**Alterações adicionais (commit posteriores)**
+- Adicionado `.gitignore` para excluir `__pycache__`, `*.pyc`, `dev_ova.db` e artefatos de IDE.
+- Adicionado `Back-End/tools/cleanup_repo.py` para remover arquivos rastreados indesejados do índice git localmente.
+- O arquivo de teste `dev_ova.db` foi removido do workspace; use `Back-End/tools/init_test_db.py` para regenerá-lo localmente se necessário.
+- Branch com as mudanças enviada para o fork do autor: `feature/student-report` em https://github.com/VictorBarretoAndrade/OVA-IA
