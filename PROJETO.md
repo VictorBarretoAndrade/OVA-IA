@@ -65,6 +65,10 @@ interactions ──── students ──── courses
 | `questions` | Questões de avaliação (26 total) | `statement`, `alternatives` (JSON), `answer`, `ova_id`, `competency_id` |
 | `answers` | Respostas corretas dos alunos | `student_id`, `question_id` |
 | `interactions` | Log de ações do aluno | `interaction_date`, `interaction_time`, `student_action`, `student_id`, `ova_id` |
+| `ova_progress` | Progresso do aluno por OVA | `student_id`, `ova_id`, `read_time`, `perc_scrolled`, `completed`, `last_access` |
+| `attempts` | Tentativas das questões (inclui erradas) | `student_id`, `question_id`, `is_correct`, `attempt_time` |
+| `interventions` | Histórico de intervenções (EduBot / admin) | `student_id`, `date`, `type`, `description`, `result` |
+| `resources` | Recursos disponíveis por OVA | `ova_id`, `resource_type`, `resource_title` |
 
 ### Competências mapeadas (6 total)
 
@@ -90,6 +94,7 @@ interactions ──── students ──── courses
 | POST | `/plot/course` | Desempenho geral de todos os alunos do curso |
 | POST | `/plot/ova` | Desempenho por aluno em uma OVA específica |
 | POST | `/plot/interaction/ova` | Contagem de interações do aluno em uma OVA |
+| GET | `/student/report/<id>` | Retorna relatório agregado do aluno (JSON) com progresso, competências e histórico de intervenções |
 
 ---
 
@@ -115,8 +120,8 @@ interactions ──── students ──── courses
 | `course_id` | ID do curso do aluno |
 | `student_id` | ID do aluno |
 | `ova_id` | ID da OVA em uso |
-| `read_time` | Tempo lido na OVA (segundos) — **não persiste no backend** |
-| `perc_scrolled` | % de scroll da página — **não persiste no backend** |
+| `read_time` | Tempo lido na OVA (segundos) — Sim (JS). Pode ser persistido no backend se o frontend enviar para `ova_progress` |
+| `perc_scrolled` | % de scroll da página — Sim (JS). Pode ser persistido no backend se o frontend enviar para `ova_progress` |
 
 ---
 
@@ -212,6 +217,15 @@ Com os dados classificados, o EduBot chama a API do Claude para:
 cd OVA-Rastreamento
 docker compose up
 ```
+
+**Migração de schema para novas tabelas**
+
+Caso deseje usar as novas tabelas em MySQL (produção), o arquivo `Database/sql/ddl_extra.sql` contém a DDL necessária para criar `ova_progress`, `attempts`, `interventions` e `resources`. Execute dentro do host MySQL ou via `docker exec` no container do MySQL:
+
+```bash
+docker exec -i <mysql-container> mysql -u root -p ova_db < Database/sql/ddl_extra.sql
+```
+
 
 Acesse: `http://localhost:8010/html/login.html`
 
