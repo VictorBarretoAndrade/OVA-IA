@@ -5,3 +5,7 @@ from courses import Courses
 from offerings import Offerings
 from subjects import Subjects
 from competencies import Competencies
+from ova_progress import OVAProgress
+from attempts import Attempts
+from interventions import Interventions
+from resources import Resources
