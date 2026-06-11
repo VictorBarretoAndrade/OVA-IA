@@ -6,5 +6,6 @@ git clone https://github.com/PERSONALIZED-CONTENT-RECOMMENDER/OVA-Rastreamento.g
 ```
 cd OVA-Rastreamento
 docker compose up
+a
 ```
 access the url http://localhost:8010/html/login.html
