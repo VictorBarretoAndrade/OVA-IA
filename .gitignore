@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# SQLite dev DB
+dev_ova.db
+Back-End/dev_ova.db
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+*.pyo
+*.pyd
+
+# VSCode
+.vscode/
+
+# Mac
+.DS_Store
+
+# Distribution / packaging
+dist/
+build/

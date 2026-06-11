@@ -10,6 +10,7 @@ from routes.interactionRoute import app_interaction
 from routes.studentRoute import app_student
 from routes.plotRoute import app_plot
 from routes.questionRoute import app_question
+from routes.reportRoute import app_report
 
 # Create the Flask app and configure CORS
 app = Flask(__name__)
@@ -23,6 +24,7 @@ app.register_blueprint(app_interaction)
 app.register_blueprint(app_student)
 app.register_blueprint(app_plot)
 app.register_blueprint(app_question)
+app.register_blueprint(app_report)
 
 # Start the application
 if __name__ == "__main__":
