@@ -32,6 +32,25 @@ services:
       ova_network:
         ipv4_address: 172.168.30.3
 
+  # Compila o frontend React (Lovable) sem exigir Node instalado na máquina:
+  # roda npm install + vite build dentro de um container e emite o resultado
+  # em Front-End/files/app, que o Apache serve em http://localhost:8010/app/
+  ova_react_build:
+    container_name: ova_react_build
+    image: node:20-alpine
+    working_dir: /src
+    environment:
+      VITE_OUT_DIR: /out
+    volumes:
+      - ./Front-End/react-logic-demo:/src
+      - ./Front-End/files/app:/out
+    command: sh -c "npm install && npm run build"
+    networks:
+      ova_network:
+        # IP fixo: a sub-rede /29 só tem 6 endereços; sem isso o build pode
+        # receber dinamicamente o .2/.3/.4, que são os IPs fixos dos serviços
+        ipv4_address: 172.168.30.6
+
   ova_apache:
     container_name: ova_front_end
     build:
@@ -42,7 +61,10 @@ services:
     volumes:
       - ./Front-End/files:/usr/local/apache2/htdocs/
     depends_on:
-      - ova_flask
+      ova_flask:
+        condition: service_started
+      ova_react_build:
+        condition: service_completed_successfully
     networks:
       ova_network:
         ipv4_address: 172.168.30.4

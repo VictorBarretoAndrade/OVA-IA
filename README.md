@@ -5,9 +5,15 @@ git clone https://github.com/PERSONALIZED-CONTENT-RECOMMENDER/OVA-Rastreamento.g
 # Running
 ```
 cd OVA-Rastreamento
-docker compose up
+docker compose up --build
 ```
-access the url http://localhost:8010/html/login.html
+- **Interface nova (React/Lovable, recomendada):** http://localhost:8010/app/
+- Interface clássica: http://localhost:8010/html/login.html
+
+> O frontend React é compilado automaticamente por um container Node durante o
+> `docker compose up` (serviço `ova_react_build`) — **não é preciso ter Node
+> instalado na máquina**. Para desenvolvê-lo com hot-reload, aí sim use Node:
+> `cd Front-End/react-logic-demo && npm install && npm run dev`.
 
 > **Nota:** em um volume MySQL já existente (criado antes destas mudanças), aplique as
 > migrações manualmente: `docker compose exec -T ova_mysql sh -c "mysql -uroot -pPassword-1 ova_db < /docker-entrypoint-initdb.d/ddl_extra.sql"`

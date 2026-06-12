@@ -170,6 +170,9 @@ def build_student_profile(student):
         ovas_data.append({
             "ova_id": ova.ova_id,
             "ova_name": ova.ova_name,
+            # link da página HTML do OVA — usado pelo frontend React para abrir
+            # o leitor clássico (iframe.html) com o conteúdo de texto
+            "link": ova.link,
             "read_time": progress.read_time if progress else 0,
             "perc_scrolled": progress.perc_scrolled if progress else 0,
             "completed": bool(progress.completed) if progress else False,

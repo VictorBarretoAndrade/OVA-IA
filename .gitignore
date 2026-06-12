@@ -21,3 +21,8 @@ Back-End/dev_ova.db
 # Distribution / packaging
 dist/
 build/
+
+# Frontend React (build e dependências)
+node_modules/
+Front-End/files/app/
+Front-End/react-logic-demo/dist/

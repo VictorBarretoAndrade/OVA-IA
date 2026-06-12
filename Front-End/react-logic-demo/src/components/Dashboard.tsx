@@ -1,12 +1,16 @@
+/*
+INTEGRAÇÃO — Dashboard alimentado pelo perfil real (GET /student/me):
+nome/curso do aluno, consumo de recursos, taxa de erro do quiz, dias sem
+acesso, formato preferido e competências com status do backend.
+Layout e identidade visual do protótipo Lovable preservados.
+*/
 import { Code2, Timer, Trophy, ClipboardCheck, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
-import { StudentState } from "../types";
-import { contents } from "../data/learningData";
-import { toExpectedJson } from "../services/analytics";
+import { StudentProfile } from "../services/api";
 
 interface DashboardProps {
-  state: StudentState;
+  profile: StudentProfile;
   onOpenContent: () => void;
 }
 
@@ -20,15 +24,27 @@ const Metric = ({ label, value, icon: Icon }: { label: string; value: string; ic
   </div>
 );
 
-export const Dashboard = ({ state, onOpenContent }: DashboardProps) => {
-  const radialData = [{ name: "progresso", value: state.modulo.progresso, fill: "#604fd8" }];
-  const exported = toExpectedJson(state);
+const statusColor: Record<string, string> = {
+  "desenvolvida": "bg-teal",
+  "em desenvolvimento": "bg-coral",
+  "não iniciada": "bg-slate-300"
+};
+
+export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
+  const progresso = profile.recursos.percentual_consumido;
+  const radialData = [{ name: "progresso", value: progresso, fill: "#604fd8" }];
+  const totalReadMinutes = Math.round(profile.ovas.reduce((sum, ova) => sum + (ova.read_time || 0), 0) / 60);
+  const quizScore =
+    profile.quiz.taxa_erro != null ? `${Math.round((1 - profile.quiz.taxa_erro) * 100)}%` : "—";
+  const allResources = profile.ovas.flatMap((ova) => ova.recursos);
+  const completedActivities = allResources.filter((r) => r.tipo === "atividade" && r.concluido).length;
+  const totalActivities = allResources.filter((r) => r.tipo === "atividade").length;
 
   return (
     <section className="space-y-8">
       <div>
         <p className="text-lg text-muted">Dashboard do Aluno</p>
-        <h1 className="mt-1 text-4xl font-bold text-ink">{state.modulo.nome}</h1>
+        <h1 className="mt-1 text-4xl font-bold text-ink">{profile.estudante.nome}</h1>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
@@ -38,16 +54,20 @@ export const Dashboard = ({ state, onOpenContent }: DashboardProps) => {
             <div className="absolute right-10 top-[-45px] h-48 w-48 rounded-full border-[7px] border-white/10" />
             <Code2 className="relative z-10 mb-8" size={62} />
             <div className="relative z-10 max-w-lg">
-              <p className="font-semibold opacity-90">CC101</p>
-              <h2 className="mt-2 text-3xl font-bold">Lógica de Programação</h2>
-              <p className="mt-3 text-lg text-white/85">Fundamentos do raciocínio computacional, algoritmos, decisões e repetições.</p>
+              <p className="font-semibold opacity-90">RA {profile.estudante.ra}</p>
+              <h2 className="mt-2 text-3xl font-bold">{profile.estudante.curso ?? "Meu curso"}</h2>
+              <p className="mt-3 text-lg text-white/85">
+                {profile.dias_sem_acesso != null && profile.dias_sem_acesso > 0
+                  ? `Você está há ${profile.dias_sem_acesso} dia(s) sem interagir — que tal retomar hoje?`
+                  : "Sua jornada de aprendizagem rastreada pelo EduBot."}
+              </p>
             </div>
           </div>
           <div className="grid gap-4 p-6 md:grid-cols-4">
-            <Metric label="Tempo total estudado" value={`${state.engajamento.tempo_total_estudo} min`} icon={Timer} />
-            <Metric label="Exercícios resolvidos" value={`${state.exercicios.realizados}/5`} icon={ClipboardCheck} />
-            <Metric label="Média dos quizzes" value={state.quizzes.media ? state.quizzes.media.toFixed(1) : "0.0"} icon={Trophy} />
-            <Metric label="Progresso geral" value={`${state.modulo.progresso}%`} icon={TrendingUp} />
+            <Metric label="Tempo de leitura" value={`${totalReadMinutes} min`} icon={Timer} />
+            <Metric label="Atividades práticas" value={`${completedActivities}/${totalActivities}`} icon={ClipboardCheck} />
+            <Metric label="Acerto nos quizzes" value={quizScore} icon={Trophy} />
+            <Metric label="Recursos consumidos" value={`${progresso}%`} icon={TrendingUp} />
           </div>
         </div>
 
@@ -55,7 +75,9 @@ export const Dashboard = ({ state, onOpenContent }: DashboardProps) => {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-xl font-bold text-ink">Progresso</h3>
-              <p className="text-sm text-muted">Cálculo por conteúdo, exercícios e quiz.</p>
+              <p className="text-sm text-muted">
+                {profile.recursos.consumidos} de {profile.recursos.total} recursos consumidos.
+              </p>
             </div>
           </div>
           <div className="mt-4 h-56">
@@ -66,7 +88,7 @@ export const Dashboard = ({ state, onOpenContent }: DashboardProps) => {
             </ResponsiveContainer>
           </div>
           <div className="-mt-36 flex h-28 flex-col items-center justify-center">
-            <span className="text-4xl font-bold text-ink">{state.modulo.progresso}%</span>
+            <span className="text-4xl font-bold text-ink">{progresso}%</span>
             <span className="text-sm text-muted">concluído</span>
           </div>
           <button onClick={onOpenContent} className="mt-12 h-11 w-full rounded-[8px] bg-ink font-semibold text-white">
@@ -79,34 +101,53 @@ export const Dashboard = ({ state, onOpenContent }: DashboardProps) => {
         <div className="rounded-[8px] border border-line bg-white p-6">
           <h3 className="text-xl font-bold text-ink">Competências desenvolvidas</h3>
           <div className="mt-5 space-y-4">
-            {state.competencias.map((item) => (
-              <div key={item.nome}>
-                <div className="mb-2 flex justify-between text-sm">
-                  <span className="font-semibold text-ink">{item.nome}</span>
-                  <span className="text-muted">{item.status}</span>
+            {profile.competencias.map((item) => {
+              const score = item.total_questoes ? Math.round((100 * item.acertos) / item.total_questoes) : 0;
+              return (
+                <div key={item.competency_id}>
+                  <div className="mb-2 flex justify-between gap-3 text-sm">
+                    <span className="font-semibold text-ink">{item.nome}</span>
+                    <span className="shrink-0 text-muted">{item.status}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100">
+                    <div
+                      className={`h-2 rounded-full ${statusColor[item.status] ?? "bg-teal"}`}
+                      style={{ width: `${Math.max(score, item.status === "não iniciada" ? 0 : 6)}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100">
-                  <div className="h-2 rounded-full bg-teal" style={{ width: `${item.score}%` }} />
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
         <div className="rounded-[8px] border border-line bg-white p-6">
-          <h3 className="text-xl font-bold text-ink">Modelo JSON salvo</h3>
+          <h3 className="text-xl font-bold text-ink">Perfil rastreado (JSON)</h3>
           <pre className="mt-4 max-h-80 overflow-auto rounded-[8px] bg-slate-950 p-4 text-xs leading-relaxed text-slate-100">
-            {JSON.stringify(exported, null, 2)}
+            {JSON.stringify(
+              {
+                estudante: profile.estudante,
+                dias_sem_acesso: profile.dias_sem_acesso,
+                recursos: profile.recursos,
+                preferencia_formato: profile.preferencia_formato,
+                quiz: profile.quiz,
+                atividades_pendentes: profile.atividades_pendentes
+              },
+              null,
+              2
+            )}
           </pre>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
-        {contents.map((content) => (
-          <div key={content.id} className="rounded-[8px] border border-line bg-white p-5">
-            <div className="text-sm font-semibold text-brand">{content.type}</div>
-            <div className="mt-2 font-bold text-ink">{content.title}</div>
-            <div className="mt-2 text-sm text-muted">{content.durationMinutes} min previstos</div>
+      <div className="grid gap-4 md:grid-cols-3">
+        {profile.ovas.map((ova) => (
+          <div key={ova.ova_id} className="rounded-[8px] border border-line bg-white p-5">
+            <div className="text-sm font-semibold text-brand">{ova.completed ? "Concluído" : "Em andamento"}</div>
+            <div className="mt-2 font-bold text-ink">{ova.ova_name}</div>
+            <div className="mt-2 text-sm text-muted">
+              {ova.perc_scrolled || 0}% lido · {ova.recursos.filter((r) => r.consumido).length}/{ova.recursos.length} recursos
+            </div>
           </div>
         ))}
       </div>

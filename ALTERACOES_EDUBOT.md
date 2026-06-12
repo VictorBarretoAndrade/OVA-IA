@@ -1,7 +1,44 @@
 # EduBot Track — Relatório completo de alterações e guia de execução
 
-> Data: 2026-06-11 · Branch: `develop-test`
+> Data: 2026-06-11/12 · Branch: `feature/edubot-track`
 > Análise prévia (stack, bugs, decisão de arquitetura): [ANALISE.md](ANALISE.md)
+
+---
+
+## 0. NOVO frontend React integrado (12/06)
+
+O repositório continha um **segundo frontend** em `Front-End/react-logic-demo/`
+("Adapta Learn IA", React + Vite + Tailwind, criado no Lovable). Ele só rodava
+em máquinas com Node instalado (`npm run dev`) e era um demo isolado: dados
+fictícios de "Lógica de Programação" salvos apenas no localStorage, sem login
+e sem backend.
+
+O que foi feito:
+
+- **Integração completa com o backend** (mantendo o visual Lovable):
+  - `src/services/api.ts` — cliente da API com token Bearer; sessão
+    compartilhada com o frontend clássico (mesma origem/localStorage)
+  - `src/components/Login.tsx` — login real por RA/senha
+  - `Dashboard`/`Evolution` — métricas e competências reais de `GET /student/me`
+  - `Contents.tsx` — recursos reais dos OVAs: players de vídeo (YouTube/arquivo)
+    e podcast em React (`src/components/players/`), atividades com conclusão, e
+    botão que abre o leitor clássico (`iframe.html`) para o texto interativo
+  - `Quiz.tsx` — questões reais de `POST /question/ova`, corrigidas pelo
+    SERVIDOR via `POST /question/answer` (tentativas alimentam o EduBot)
+  - `Report.tsx` (Tutor IA) — recomendação real de `GET /edubot/recommendation`
+    + histórico de intervenções
+  - Removidos os arquivos do demo (learningData, storage, analytics, report)
+- **Build sem Node na máquina**: novo serviço `ova_react_build` no
+  `compose.yaml` (container `node:20-alpine` roda `npm install && vite build`
+  e emite em `Front-End/files/app/`, servido pelo Apache). O `docker compose up`
+  já faz tudo.
+- **Bugs corrigidos nessa rodada**: `vite.config.ts` registrava o plugin sem
+  invocá-lo (`plugins: [react]` → `react()`); modelos `OVAProgress`/
+  `ResourceProgress` apontavam para nomes de tabela errados no MySQL
+  (`ovaprogress` vs `ova_progress`) — só funcionava no fallback SQLite.
+
+**Acesso:** `http://localhost:8010/app/` (link "✨ Nova interface" na tela de
+login clássica). O frontend antigo continua em `/html/login.html`.
 
 ---
 

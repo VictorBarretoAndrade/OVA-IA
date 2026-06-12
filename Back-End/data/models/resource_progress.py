@@ -20,6 +20,9 @@ class ResourceProgress(BaseModel):
     last_access = DateTimeField(default=datetime.datetime.now)
 
     class Meta:
+        # Nome explícito: o default do Peewee seria "resourceprogress", mas o
+        # DDL (ddl_extra.sql) cria "resource_progress"
+        table_name = "resource_progress"
         indexes = (
             (("student_id", "resource_id"), True),  # unique pair
         )

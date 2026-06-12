@@ -12,3 +12,9 @@ class OVAProgress(BaseModel):
     perc_scrolled = IntegerField(null=True)  # 0-100
     completed = BooleanField(default=False)
     last_access = DateTimeField(null=True)
+
+    class Meta:
+        # BUGFIX: sem isso o Peewee procura a tabela "ovaprogress", mas o DDL
+        # (ddl_extra.sql) cria "ova_progress" — quebrava só no MySQL, pois no
+        # fallback SQLite as tabelas eram criadas pelo próprio Peewee.
+        table_name = "ova_progress"
