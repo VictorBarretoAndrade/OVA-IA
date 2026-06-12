@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data/models')))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data')))
 
 # Import necessary libraries
-from flask import Blueprint, request
+from flask import Blueprint, request, g
 from flask_cors import cross_origin
 from peewee import PeeweeException # ORM library
 import json
@@ -15,8 +15,25 @@ import json
 # Import the necessary ORM classes
 from students import Students
 
+# MELHORIA (4.2): autenticação + perfil completo do aluno logado
+from auth import require_auth
+from services.student_context import build_student_profile
+
 # Create a route blueprint as a reusable component
 app_student = Blueprint("student", __name__)
+
+
+# MELHORIA (4.2): devolve o contexto completo do aluno autenticado (quem está
+# logado, recursos consumidos, desempenho por competência, inatividade...).
+# É o mesmo perfil consumido pelo edubot_agent e pelo painel (painel.html).
+@app_student.route("/student/me", methods=["GET"])
+@cross_origin()
+@require_auth
+def student_me():
+    try:
+        return json.dumps(build_student_profile(g.student), default=str), 200
+    except PeeweeException as err:
+        return json.dumps({"Error": f"{err}"}), 501
 
 # Given a course id, return all the students of this course
 @app_student.route("/student/course/<int:course_id>", methods=["GET"])

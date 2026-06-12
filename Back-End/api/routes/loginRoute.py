@@ -16,6 +16,9 @@ import json
 from students import Students
 from courses import Courses
 
+# MELHORIA (4.2): token de sessão emitido no login (ver api/auth.py)
+from auth import generate_token
+
 # Create a route blueprint as a reusable component
 app_login = Blueprint('login', __name__)
 
@@ -44,8 +47,15 @@ def login():
                 "student_id": student.student_id
             }
             
-            # Return the IDs and the student's admin status (course coordinator)
-            return json.dumps({"Message": "Logged successfully!", "ids": ids, "is_admin": student.is_admin}), 200
+            # MELHORIA (4.2): a signed session token is now returned along with the
+            # IDs. The frontend stores it and sends "Authorization: Bearer <token>"
+            # on subsequent requests, so protected routes know who is logged in.
+            return json.dumps({
+                "Message": "Logged successfully!",
+                "ids": ids,
+                "is_admin": student.is_admin,
+                "token": generate_token(student.student_id)
+            }), 200
         # Handle errors and return the error description
         except PeeweeException as err:
             return json.dumps({"Error": f"{err}"}), 501

@@ -30,21 +30,28 @@ def register_interaction():
         try:
             # Retrieve the JSON payload sent in the request
             interaction_data = request.get_json()[0]
-            
+
             # Retrieve the student ID involved in the interaction
             student = Students.select().where(Students.student_id == interaction_data["student_id"]).first()
             # Retrieve the OVA ID with which the student interacted
             ova = OVAs.select().where(OVAs.ova_id == interaction_data["ova_id"]).first()
-            
-            # Create a new interaction record in the database
+
+            # BUGFIX (B8): the original code created the interaction even when the
+            # student or OVA didn't exist, inserting NULL foreign keys silently.
+            if student is None or ova is None:
+                return json.dumps({"Error": "Unknown student_id or ova_id"}), 400
+
+            # BUGFIX (B8): date used the non-ISO "%Y/%m/%d" format; standardized to
+            # ISO 8601 so date arithmetic (e.g. days of inactivity) works reliably.
+            now = datetime.datetime.now()
             interaction = Interactions.create(
-                interaction_date = datetime.datetime.now().strftime("%Y/%m/%d"),
-                interaction_time = datetime.datetime.now().strftime("%H:%M:%S"),
+                interaction_date = now.strftime("%Y-%m-%d"),
+                interaction_time = now.strftime("%H:%M:%S"),
                 student_action = interaction_data["action"],
                 student_id = student,
                 ova_id = ova
             )
-            
+
             # Return a success message if the operation was completed
             return json.dumps("New interaction registered!"), 200
         # Handle errors and return the error description

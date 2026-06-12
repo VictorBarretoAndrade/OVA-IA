@@ -9,3 +9,4 @@ from ova_progress import OVAProgress
 from attempts import Attempts
 from interventions import Interventions
 from resources import Resources
+from resource_progress import ResourceProgress

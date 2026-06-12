@@ -1,0 +1,134 @@
+# MELHORIA (4.1/4.2) — Persistência do rastreamento de consumo.
+#
+# Antes destas rotas, read_time/perc_scrolled ficavam apenas no localStorage do
+# navegador e as tabelas ova_progress/resource_progress nunca eram escritas.
+# Estas rotas fecham o ciclo frontend -> backend -> banco:
+#
+#   GET  /ova/<id>/resources   -> recursos do OVA + progresso do aluno logado
+#   POST /progress/ova         -> upsert de leitura/scroll/conclusão do OVA
+#   POST /progress/resource    -> upsert de consumo de um recurso (vídeo/podcast/atividade)
+#
+# Todas exigem o token emitido no login (@require_auth) — o aluno é resolvido
+# do token (g.student), nunca do payload, para impedir escrita em nome de outro.
+
+# Add parent directories to the path to enable imports from submodules
+import sys, os
+
+root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
+sys.path.append(root)
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data/models')))
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data')))
+
+from flask import Blueprint, request, g
+from flask_cors import cross_origin
+from peewee import PeeweeException
+import json
+import datetime
+
+from ovas import OVAs
+from resources import Resources
+from ova_progress import OVAProgress
+from resource_progress import ResourceProgress
+
+from auth import require_auth
+
+app_progress = Blueprint("progress", __name__)
+
+
+# Lists every resource of an OVA along with the logged student's progress.
+# The frontend uses this to render the media section (video/audio players).
+@app_progress.route("/ova/<int:ova_id>/resources", methods=["GET"])
+@cross_origin()
+@require_auth
+def ova_resources(ova_id):
+    try:
+        resource_list = []
+        for resource in Resources.select().where(Resources.ova_id == ova_id):
+            rp = ResourceProgress.get_or_none(
+                (ResourceProgress.student_id == g.student) &
+                (ResourceProgress.resource_id == resource.resource_id))
+            resource_list.append({
+                "resource_id": resource.resource_id,
+                "resource_type": resource.resource_type,
+                "resource_title": resource.resource_title,
+                "resource_url": resource.resource_url,
+                "media_type": resource.media_type,
+                "duration_seconds": resource.duration_seconds,
+                "perc_consumed": rp.perc_consumed if rp else 0,
+                "seconds_consumed": rp.seconds_consumed if rp else 0,
+                "completed": bool(rp.completed) if rp else False
+            })
+        return json.dumps(resource_list), 200
+    except PeeweeException as err:
+        return json.dumps({"Error": f"{err}"}), 501
+
+
+# Upserts the per-OVA reading progress (read_time seconds, % scrolled, completed).
+# Values only move forward (max) so an old tab can't downgrade the progress.
+@app_progress.route("/progress/ova", methods=["POST"])
+@cross_origin()
+@require_auth
+def save_ova_progress():
+    try:
+        data = request.get_json()[0]
+        ova = OVAs.get_or_none(OVAs.ova_id == data["ova_id"])
+        if ova is None:
+            return json.dumps({"Error": "Unknown ova_id"}), 400
+
+        progress = OVAProgress.get_or_none(
+            (OVAProgress.student_id == g.student) & (OVAProgress.ova_id == ova))
+        read_time = int(data.get("read_time", 0) or 0)
+        perc_scrolled = min(100, int(data.get("perc_scrolled", 0) or 0))
+        completed = bool(data.get("completed", False))
+
+        if progress is None:
+            OVAProgress.create(
+                student_id=g.student, ova_id=ova,
+                read_time=read_time, perc_scrolled=perc_scrolled,
+                completed=completed, last_access=datetime.datetime.now())
+        else:
+            progress.read_time = max(progress.read_time or 0, read_time)
+            progress.perc_scrolled = max(progress.perc_scrolled or 0, perc_scrolled)
+            progress.completed = progress.completed or completed
+            progress.last_access = datetime.datetime.now()
+            progress.save()
+        return json.dumps("Progress saved"), 200
+    except PeeweeException as err:
+        return json.dumps({"Error": f"{err}"}), 501
+
+
+# Upserts the consumption of one resource:
+#   video    -> perc_consumed (% watched) + completed
+#   podcast  -> seconds_consumed (listening time) + perc/completed when known
+#   atividade-> completed (checklist button)
+@app_progress.route("/progress/resource", methods=["POST"])
+@cross_origin()
+@require_auth
+def save_resource_progress():
+    try:
+        data = request.get_json()[0]
+        resource = Resources.get_or_none(Resources.resource_id == data["resource_id"])
+        if resource is None:
+            return json.dumps({"Error": "Unknown resource_id"}), 400
+
+        rp = ResourceProgress.get_or_none(
+            (ResourceProgress.student_id == g.student) &
+            (ResourceProgress.resource_id == resource))
+        perc = min(100, int(data.get("perc_consumed", 0) or 0))
+        seconds = int(data.get("seconds_consumed", 0) or 0)
+        completed = bool(data.get("completed", False))
+
+        if rp is None:
+            ResourceProgress.create(
+                student_id=g.student, resource_id=resource,
+                perc_consumed=perc, seconds_consumed=seconds,
+                completed=completed, last_access=datetime.datetime.now())
+        else:
+            rp.perc_consumed = max(rp.perc_consumed or 0, perc)
+            rp.seconds_consumed = max(rp.seconds_consumed or 0, seconds)
+            rp.completed = rp.completed or completed
+            rp.last_access = datetime.datetime.now()
+            rp.save()
+        return json.dumps("Resource progress saved"), 200
+    except PeeweeException as err:
+        return json.dumps({"Error": f"{err}"}), 501

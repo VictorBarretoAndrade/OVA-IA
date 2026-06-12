@@ -23,22 +23,17 @@ $(document).ready(function () {
             ovaScript.id = "ova-script";
             ovaScript.type = "module";
             frag.appendChild(ovaScript);
-        }
-    
-        /*
-            The lines below dynamically add the script for the YouTube embed API
-            inside the iframe content to detect the interactions made with the videos
-        */
-
-        if (body.querySelector("#video-script") == undefined) {
-            const videoScript = iframeDoc.createElement("script");
-            videoScript.src = "../../js/video-player.js";
-            videoScript.id = "video-script";
-            videoScript.type = "text/javascript";
-            frag.appendChild(videoScript);
-
             body.appendChild(frag);
         }
+
+        /*
+        BUGFIX (B3) / MELHORIA (4.1): the legacy video-player.js injection was
+        removed. It mixed seconds with percentages in its checkpoint logic and
+        only supported hardcoded YouTube iframes. Media is now rendered by
+        ova.js from the database, using the dedicated player components in
+        js/components/ (video-player.js and audio-player.js), which accept any
+        URL and track consumption per resource.
+        */
 
         // Attach a scroll event listener to the content window
         $(contentWindow).on("scroll", function () {
@@ -79,27 +74,6 @@ $(document).ready(function () {
     });
 });
 
-/*
-The function to generate the scroll points, given a minimum read time
-and the number of points
-*/
-function generateScrollPoints(readTime, n_points) {
-    let points = [];
-    const perc = 100 / n_points; // Percentage for each point
-    const perc_time = readTime / n_points; // Time for each point
-    const alreadyScrolled = JSON.parse(localStorage.getItem("perc_scrolled")); // Get already scrolled percentage
-
-    for (let i = 1; i <= n_points; i++) {
-        /*
-        The percentage of the point, the minimum time, and 
-        whether the student has already achieved that point
-        */
-        points.push({
-            perc: perc * i,
-            time: perc_time * i,
-            status: perc * i <= alreadyScrolled
-        });
-    }
-
-    return points; // Return the generated points
-}
+// NOTE: a duplicated, unused copy of generateScrollPoints lived here reading
+// the old GLOBAL perc_scrolled key (see BUGFIX B4). It was dead code in this
+// file (only ova.js uses scroll points) and was removed.

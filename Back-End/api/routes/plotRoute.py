@@ -1,12 +1,17 @@
 # Add parent directories to the path to enable imports from submodules
 import sys, os
 
-from ovas import OVAs
-from questions import Questions
-
 root = os.path.abspath(os.path.join(os.getcwd(), os.pardir))
 sys.path.append(root)
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'plots')))
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data/models')))
+sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data')))
+
+# BUGFIX (B7): these model imports were placed BEFORE the sys.path setup and only
+# worked because other routes (imported earlier in api.py) had already appended
+# the model directories. Moved below the path setup so this module is self-contained.
+from ovas import OVAs
+from questions import Questions
 
 # Import necessary libraries
 from flask import Blueprint, request
@@ -102,7 +107,15 @@ def get_interaction_plots():
             interaction_data = request.get_json()[0]
             print(interaction_data)
             
-            student_interactions = Interactions.select().where(Interactions.student_id == interaction_data["student_id"] and Interactions.ova_id == interaction_data["ova_id"]).count()
+            # BUGFIX (B1): the original code used the Python "and" operator between two
+            # Peewee expressions. "and" evaluates the truthiness of the first expression
+            # and returns the second one, so the student filter was silently DISCARDED
+            # and the count included interactions from every student. Peewee requires
+            # the bitwise "&" operator to combine conditions.
+            student_interactions = Interactions.select().where(
+                (Interactions.student_id == interaction_data["student_id"]) &
+                (Interactions.ova_id == interaction_data["ova_id"])
+            ).count()
             
             num_questions = Questions.select().where(Questions.ova_id == interaction_data["ova_id"]).count()
             ova = OVAs.select(OVAs.num_interactions).where(OVAs.ova_id == interaction_data["ova_id"]).first()

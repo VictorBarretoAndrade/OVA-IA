@@ -3,6 +3,14 @@ const PORT = 5010;
 const HOST = window.location.hostname || "localhost";
 const BASE_URL = `http://${HOST}:${PORT}`;
 
+// MELHORIA (4.2): the session token issued by POST /login is stored in
+// localStorage and sent as a Bearer header on every request, so protected
+// endpoints (/progress/*, /student/me, /edubot/*) know who is logged in.
+function authHeaders() {
+    const token = localStorage.getItem("token");
+    return token ? { "Authorization": `Bearer ${token}` } : {};
+}
+
 // Send the request to the API using a Promise, due to the async functionality
 export function doRequest(url, data, type="POST", is_login=0) {
     return new Promise((resolve, reject) => {
@@ -13,6 +21,7 @@ export function doRequest(url, data, type="POST", is_login=0) {
             dataType: "json",
             crossDomain: true,
             contentType: "application/json",
+            headers: authHeaders(),
             success: (response) => resolve(response),
             error: (response) => reject(response)
         });
@@ -99,6 +108,40 @@ export function getStudentsByCourse(course_id) {
 export function getStudentInteractionsNum(data) {
     const url = "/plot/interaction/ova" // Defining the endpoint URL for fetching student interactions for a specific OVA.
     return doRequest(url, data, "POST") // Making a POST request to retrieve the student interactions data.
+}
+
+// ---------------------------------------------------------------------------
+// MELHORIA (4.1): resources of an OVA + persistence of consumption tracking
+// ---------------------------------------------------------------------------
+
+// Resources (texto/video/podcast/quiz/atividade) of an OVA with the logged
+// student's progress on each one
+export function getOVAResources(ova_id) {
+    return doRequest(`/ova/${ova_id}/resources`, {}, "GET");
+}
+
+// Persists read_time / perc_scrolled / completed of the current OVA
+export function saveOVAProgress(data) {
+    return doRequest("/progress/ova", data, "POST");
+}
+
+// Persists consumption of a single resource (video %, podcast seconds, ...)
+export function saveResourceProgress(data) {
+    return doRequest("/progress/resource", data, "POST");
+}
+
+// ---------------------------------------------------------------------------
+// MELHORIA (4.2/4.3): student context + EduBot agent
+// ---------------------------------------------------------------------------
+
+// Full profile of the logged student (consumption, competencies, history)
+export function getMe() {
+    return doRequest("/student/me", {}, "GET");
+}
+
+// Asks the EduBot agent for a fresh recommendation for the logged student
+export function getEdubotRecommendation() {
+    return doRequest("/edubot/recommendation", {}, "GET");
 }
 
 /*

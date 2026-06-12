@@ -88,8 +88,11 @@ export function makeQuestions(response) {
     questions.html("");
     for (let i = 0; i < response.length; i++) {
         const question = response[i];
+        // BUGFIX (B5/B9): the correct answer used to be embedded in the DOM as a
+        // data-correct attribute (visible in DevTools). The API no longer sends
+        // it; grading happens server-side in /question/answer.
         const item = $(`
-        <div class="question mb-5" data-number="${i + 1}" data-correct="${question.answer}" data-id="${question.question_id}" data-answered="${question.answered}" data-competency-id="${question.competency_id}">
+        <div class="question mb-5" data-number="${i + 1}" data-id="${question.question_id}" data-answered="${question.answered}" data-competency-id="${question.competency_id}">
             <h3>${i + 1}. ${question.statement}</h3>
             <form action="#">
                 <div class="alternatives my-3"></div>
@@ -134,24 +137,35 @@ export function setListener(question) {
     verifyQuestion.on("click", async function(e) {
         e.preventDefault();
         const checked = question.find(".alternatives").find("input:checked");
+        if (checked.length === 0) return; // nothing selected yet
         let action = `The user x clicked the button for question ${question.data("number")}`;
-        const isCorrect = checked.val() == question.data("correct");
-        if (isCorrect) {
-            message.addClass("bg-success");
-            message.removeClass("bg-danger");
-            message.html("Correct!");
 
-            const answer_data = {
-                student_id: localStorage.getItem("student_id"),
-                question_id: question.data("id"),
-                is_correct: isCorrect
-            };
-            if (!question.data("answered")) answerQuestion(answer_data);
-        } else {
-            message.addClass("bg-danger");
-            message.removeClass("bg-success");
-            message.html("Incorrect.");
-        }
+        /*
+        BUGFIX (B5): grading used to be done here in the browser by comparing
+        with the data-correct attribute (answer key exposed in the DOM and the
+        result forgeable). The selected alternative is now sent to the backend,
+        which grades it, records the attempt (right or wrong — feeding the
+        EduBot quiz-error rule) and returns is_correct for the UI.
+        */
+        const answer_data = {
+            student_id: localStorage.getItem("student_id"),
+            question_id: question.data("id"),
+            selected: checked.val()
+        };
+        await answerQuestion(answer_data)
+        .then(response => {
+            if (response.is_correct) {
+                message.addClass("bg-success");
+                message.removeClass("bg-danger");
+                message.html("Correct!");
+            } else {
+                message.addClass("bg-danger");
+                message.removeClass("bg-success");
+                message.html("Incorrect.");
+            }
+        })
+        .catch(error => console.log(error));
+
         await registerInteraction(action)
         .then(response => console.log("success"))
         .catch(error => console.log(error));

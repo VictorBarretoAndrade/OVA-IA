@@ -1,39 +1,63 @@
-import { 
-    registerInteraction, 
-    getOVAQuestions
-} 
+import {
+    registerInteraction,
+    getOVAQuestions,
+    getOVAResources,
+    saveOVAProgress,
+    saveResourceProgress
+}
 from "./request.js";
 
 import { makeQuestions } from "./make.js";
+// MELHORIA (4.1): players de vídeo e áudio como componentes separados
+import { createVideoPlayer } from "./components/video-player.js";
+import { createAudioPlayer } from "./components/audio-player.js";
 
-// Access the HTML inside the iframe
-// const mainIframe = $("#iframe");
-// const iframeDoc = mainIframe.contents()[0];
-// const contentWindow = mainIframe.get(0).contentWindow;
+// OVA considered concluded when the student scrolled at least this much
+const OVA_COMPLETED_PERC = 90;
+// How often (seconds) the reading progress is persisted to the backend
+const SYNC_INTERVAL_S = 15;
 
 $(document).ready(function() {
     sessionStorage.setItem("past_page", "iframe");
-    /*
-    Attempt to retrieve the read time of the OVA. If it's null, it indicates
-    that the user just started reading.
-    */
-    const read_time = localStorage.getItem("read_time");
-    let timePassed;
-    if (read_time == null) {
-        // Initialize the read time counter
-        timePassed = 0;
-        localStorage.setItem("read_time", 0);
-    } else timePassed = read_time;
 
-    // Similarly, attempt to get the percentage of the OVA that has been scrolled
-    if (localStorage.getItem("perc_scrolled") == null) {
-        localStorage.setItem("perc_scrolled", 0);
+    const ova_id = localStorage.getItem("ova_id");
+
+    /*
+    BUGFIX (B4): read_time and perc_scrolled used to be stored in GLOBAL
+    localStorage keys, so progress from one OVA leaked into every other OVA.
+    The keys are now namespaced by ova_id.
+    */
+    const readTimeKey = `read_time_${ova_id}`;
+    const percScrolledKey = `perc_scrolled_${ova_id}`;
+
+    let timePassed = parseInt(localStorage.getItem(readTimeKey)) || 0;
+    if (localStorage.getItem(percScrolledKey) == null) {
+        localStorage.setItem(percScrolledKey, 0);
     }
 
-    // Update the time passed counter by 1 every second
+    let maxScrolled = parseInt(localStorage.getItem(percScrolledKey)) || 0;
+
+    /*
+    BUGFIX (B4): the counter used to overwrite read_time with the checkpoint
+    threshold instead of the real elapsed time. Now the real elapsed time is
+    accumulated and persisted both locally and in the backend (ova_progress),
+    which previously never received any data.
+    */
     setInterval(function () {
         timePassed++;
+        localStorage.setItem(readTimeKey, timePassed);
     }, 1000);
+
+    // MELHORIA (4.1/4.2): periodically sync the reading progress to the backend
+    function syncProgress() {
+        saveOVAProgress({
+            ova_id: ova_id,
+            read_time: timePassed,
+            perc_scrolled: maxScrolled,
+            completed: maxScrolled >= OVA_COMPLETED_PERC
+        }).catch(error => console.log(error));
+    }
+    setInterval(syncProgress, SYNC_INTERVAL_S * 1000);
 
     // Redirect to the login page if the user is not logged in
     const logged = JSON.parse(localStorage.getItem("logged"));
@@ -42,10 +66,10 @@ $(document).ready(function() {
     }
 
     /*
-    Divide the page scroll into n points (5), and the user needs to 
+    Divide the page scroll into n points (5), and the user needs to
     pass each point within at least total_time / n_points (360/5) seconds
     */
-    let scrollPoints = generateScrollPoints(360, 5);
+    let scrollPoints = generateScrollPoints(360, 5, percScrolledKey);
 
     const carrousels = $("section").find(".carrousel");
     const accordionItems = $(".accordion-item");
@@ -53,15 +77,20 @@ $(document).ready(function() {
     getOVAQuestions()
     .then(response => makeQuestions(response))
     .catch(error => console.log(error));
-    
+
+    // MELHORIA (4.1): render the OVA's media resources (videos, podcasts and
+    // practical activities) from the database, with consumption tracking
+    getOVAResources(ova_id)
+    .then(response => renderMediaResources(response))
+    .catch(error => console.log(error));
 
     // This section counts the total number of interactions in the OVA
 
     let accordionView = [];
 
     /*
-    For each accordion item, if the student opens the item, 
-    it registers an interaction, sending to the API the description, 
+    For each accordion item, if the student opens the item,
+    it registers an interaction, sending to the API the description,
     along with the name of the item and the section it belongs to
     */
     accordionItems.each(index => {
@@ -89,7 +118,7 @@ $(document).ready(function() {
     });
 
     /*
-    Animation to display the section content to the user only when 
+    Animation to display the section content to the user only when
     they reach that point
     */
     const sections = $(".section-content");
@@ -97,38 +126,42 @@ $(document).ready(function() {
         const s = $(window).scrollTop(),
             d = $(document).height(),
             c = $(window).height();
-            
+
         $.each(sections, function(index) {
             const section = sections.eq(index);
             if (s - section.parent().offset().top >= - c / 2) {
                 section.animate({
                     left: "0px",
-                    opacity: 1 
+                    opacity: 1
                 }, 500);
             }
         });
 
         const scrollPercent = (s / (d - c)) * 100;
-        const position = scrollPercent;
+
+        // Track the maximum scroll reached (per-OVA — see BUGFIX B4)
+        if (scrollPercent > maxScrolled) {
+            maxScrolled = Math.min(100, Math.round(scrollPercent));
+            localStorage.setItem(percScrolledKey, maxScrolled);
+        }
 
         /**
-        When the student reaches a new scroll point, the API registers 
-        that the student reached that point. Additionally, the maximum 
-        percentage scrolled is updated in local storage.
+        When the student reaches a new scroll point, the API registers
+        that the student reached that point.
         */
         scrollPoints.forEach(async point => {
             if (scrollPercent >= point.perc && point.status === false && timePassed >= point.time) {
                 point.status = true;
-                localStorage.setItem("perc_scrolled", point.perc);
-                localStorage.setItem("read_time", point.time);
                 const action = `This student reached ${point.perc}% in this OVA`;
                 await registerInteraction(action)
                 .then(response => console.log("success"))
                 .catch(error => console.log(error));
+                // Persist the new milestone right away
+                syncProgress();
             }
         });
     });
-    
+
     // Displays the first carrousel item in each carrousel
     let carrouselsActualParts = {};
     carrousels.each(index => {
@@ -143,7 +176,7 @@ $(document).ready(function() {
     });
 
     /*
-    When the student navigates through the carrousel items, the API 
+    When the student navigates through the carrousel items, the API
     registers that the student made an interaction with that specific carrousel
     */
     carrousels.each(index => {
@@ -165,17 +198,94 @@ $(document).ready(function() {
 });
 
 /*
+MELHORIA (4.1): renders the media resources (video/podcast/atividade) of the
+OVA inside the "Recursos Adicionais" section. Each player receives only a URL
+(the hosting decision — S3, local upload, YouTube, Spotify — stays open) and
+reports consumption back, which is persisted in resource_progress and also
+registered as an interaction.
+*/
+function renderMediaResources(resources) {
+    // Reuse the existing "Recursos Adicionais" section of the OVA page when
+    // present; create an equivalent one otherwise (keeps the current visual)
+    let container = $("#resources .container").get(0);
+    if (!container) {
+        const section = $(`
+            <section id="resources">
+                <h1 class="title text-light bg-primary text-center py-5">Recursos Adicionais</h1>
+                <div class="container p-5 position-relative"></div>
+            </section>
+        `);
+        $("body").append(section);
+        container = section.find(".container").get(0);
+    }
+
+    const saveProgress = (resource, state, label) => {
+        saveResourceProgress({
+            resource_id: resource.resource_id,
+            perc_consumed: state.perc || 0,
+            seconds_consumed: state.seconds || 0,
+            completed: state.completed || false
+        }).catch(error => console.log(error));
+        registerInteraction(label).catch(error => console.log(error));
+    };
+
+    resources.forEach(resource => {
+        if (resource.resource_type === "video") {
+            createVideoPlayer(container, {
+                url: resource.resource_url,
+                mediaType: resource.media_type,
+                title: resource.resource_title,
+                initialPerc: resource.perc_consumed,
+                onProgress: state => saveProgress(
+                    resource, state,
+                    `Watched ${state.perc}% of the "${resource.resource_title}" video`)
+            });
+        } else if (resource.resource_type === "podcast") {
+            createAudioPlayer(container, {
+                url: resource.resource_url,
+                title: resource.resource_title,
+                durationSeconds: resource.duration_seconds,
+                initialSeconds: resource.seconds_consumed,
+                onProgress: state => saveProgress(
+                    resource, state,
+                    `Listened ${state.seconds}s of the "${resource.resource_title}" podcast`)
+            });
+        } else if (resource.resource_type === "atividade") {
+            // Practical activity: simple card with a completion button
+            const done = resource.completed;
+            const card = $(`
+                <div class="activity-resource my-4 p-3 border rounded-3 d-flex justify-content-between align-items-center">
+                    <span class="fs-5"><i class="bi bi-clipboard-check me-2"></i>${resource.resource_title}</span>
+                    <button class="btn ${done ? "btn-success disabled" : "btn-outline-success"}">
+                        ${done ? "Concluída ✓" : "Marcar como concluída"}
+                    </button>
+                </div>
+            `);
+            card.find("button").on("click", function() {
+                saveProgress(resource, { perc: 100, completed: true },
+                    `Completed the "${resource.resource_title}" activity`);
+                $(this).addClass("btn-success disabled").removeClass("btn-outline-success").html("Concluída ✓");
+            });
+            $(container).append(card);
+        }
+        // "texto" and "quiz" resources are the OVA page itself — already
+        // tracked by scroll/read time and by quiz attempts respectively
+    });
+}
+
+/*
 The function to generate the scroll points, given a minimum read time
 and the number of points.
 */
-function generateScrollPoints(readTime, n_points) {
+function generateScrollPoints(readTime, n_points, percScrolledKey) {
     let points = [];
     const perc = 100 / n_points;
     const perc_time = readTime / n_points;
-    const alreadyScrolled = JSON.parse(localStorage.getItem("perc_scrolled"));
+    // BUGFIX (B4): reads the per-OVA key instead of the old global one
+    const alreadyScrolled = JSON.parse(localStorage.getItem(percScrolledKey));
     for (let i = 1; i <= n_points; i++) {
         /*
-        The percentage of the point, the minimum time, and 
+        The percentage of the point, the minimum time, and
         whether the student has already achieved that point.
         */
         points.push({

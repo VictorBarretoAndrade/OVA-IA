@@ -10,20 +10,30 @@ from collections import defaultdict
 from base import db
 import json
 
+# BUGFIX (B2): the raw SQL below used to interpolate request values directly into
+# f-strings, which allowed SQL injection (e.g. student_id = "1; drop table ...").
+# All identifiers coming from the request are now coerced to int before being
+# used. int() raises ValueError for any non-numeric payload, which aborts the
+# request instead of executing injected SQL. (Parameter placeholders differ
+# between the MySQL and SQLite drivers used by this project, so coercion is the
+# simplest portable fix for numeric-only values.)
+def _safe_int(value):
+    return int(value)
+
 # Returns the performance of the student in a subject,
 # grouped by competencies
 def subject_performance_by_competencies(data):
     # Reuse the connection if it's already open
     db.connect(reuse_if_open=True)
-    
-    # get the ids for the query
-    student_id = data["student_id"]
-    course_id = data["course_id"]
-    subject_id = data["subject_id"]
-    has_ova_id = data.get("ova_id") is not None
+
+    # get the ids for the query (coerced to int — see BUGFIX B2 above)
+    student_id = _safe_int(data["student_id"])
+    course_id = _safe_int(data["course_id"])
+    subject_id = _safe_int(data["subject_id"])
+    has_ova_id = data.get("ova_id") not in (None, "")
     ova_where = ""
     if has_ova_id:
-        ova_id = data["ova_id"]
+        ova_id = _safe_int(data["ova_id"])
         ova_where = f" and q.ova_id = {ova_id}"
     
     # Perform the query
@@ -66,6 +76,7 @@ group by c.competency_id""")
 def course_general_performance(course_id):
     # Reuse the connection if it's already open
     db.connect(reuse_if_open=True)
+    course_id = _safe_int(course_id)  # BUGFIX (B2): prevent SQL injection
     query = (f"""select s.student_name, count(sub_q.answer_id) / (
 	select count(q.question_id)
     from questions q
@@ -102,7 +113,7 @@ group by s.student_id;""")
 def ova_performance_by_students(data):
     # Reuse the connection if it's already open
     db.connect(reuse_if_open=True)
-    ova_id = data["ova_id"]
+    ova_id = _safe_int(data["ova_id"])  # BUGFIX (B2): prevent SQL injection
     
     query = (f"""select s.student_name, count(sub_q.question_id) / (
 	select count(*)

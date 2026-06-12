@@ -74,6 +74,8 @@ $(document).ready(function() {
             localStorage.setItem("is_admin", response.is_admin); // Store admin status
             localStorage.setItem("course_id", response.ids.course_id); // Store course ID
             localStorage.setItem("student_id", response.ids.student_id); // Store student ID
+            // MELHORIA (4.2): session token sent as Bearer header by request.js
+            localStorage.setItem("token", response.token);
 
             // If the user logged in successfully
             const isAdmin = JSON.parse(localStorage.getItem("is_admin")); // Get admin status
