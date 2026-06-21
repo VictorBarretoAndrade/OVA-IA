@@ -360,6 +360,26 @@ cuja resposta já vem no mesmo formato de envelope (`content[0].text`).
 
 ---
 
+### 6.6 Segundo modo do agente: tool-use para montar a OVA personalizada
+
+Além da recomendação de uma chamada só (`GET /edubot/recommendation`, descrita
+acima), o EduBot ganhou um modo **agente com tool-use**: a partir do mesmo perfil,
+ele decide em vários passos quais ferramentas chamar para **diagnosticar a
+competência fraca, buscar conteúdo no banco e montar uma OVA de reforço**.
+
+- O **erro por competência** (seção 3) agora vem no perfil por competência
+  (`tentativas`/`erros`/`taxa_erro`), e é o sinal que escolhe o assunto a remediar.
+- O **banco de conteúdo é classificado por competência** (`resources.competency_id`
+  + `questions.competency_id`), o que o agente consulta via tools.
+- O **loop de tool-use é real e definitivo**; só o modelo está mockado
+  (`_MockAgentClient` devolve o envelope de tool-use da Anthropic). Ligar a LLM
+  real = trocar o cliente em `edubot_agent/personalized.py`.
+
+Detalhes completos (tools, schema, endpoints, frontends, como cadastrar conteúdo):
+**[OVA_PERSONALIZADA.md](OVA_PERSONALIZADA.md)**.
+
+---
+
 ## 7. Limitações conhecidas
 
 - O tempo de leitura conta com a aba aberta (não detecta aba em segundo plano).

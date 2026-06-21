@@ -7,7 +7,12 @@ GET /edubot/recommendation (agente — 4.3) para exibir:
   - status de cada competência (não iniciada / em desenvolvimento / desenvolvida)
   - última recomendação do EduBot + botão para pedir uma nova
 */
-import { getMe, getEdubotRecommendation } from "./request.js";
+import {
+    getMe,
+    getEdubotRecommendation,
+    createPersonalizedOVA,
+    listPersonalizedOVAs
+} from "./request.js";
 
 const STATUS_BADGES = {
     "não iniciada": "secondary",
@@ -37,6 +42,31 @@ $(document).ready(function () {
     .catch(error => {
         console.log(error);
         if (error.status === 401) window.location.href = "login.html";
+    });
+
+    // MELHORIA (OVA personalizada): lista as OVAs de reforço já geradas
+    refreshPersonalizedOVAs();
+
+    // Aciona o agente de tool-use para montar uma nova OVA de reforço
+    $(".generate-pova").on("click", function () {
+        const button = $(this);
+        button.prop("disabled", true).html("Gerando...");
+        $(".pova-feedback").removeClass("text-danger").addClass("text-muted")
+            .text("O EduBot está diagnosticando e montando sua trilha de reforço...");
+        createPersonalizedOVA()
+        .then(result => {
+            $(".pova-feedback").text(result.mensagem_aluno || "OVA de reforço criada!");
+            refreshPersonalizedOVAs();
+            button.prop("disabled", false).html("Gerar OVA de reforço");
+        })
+        .catch(error => {
+            console.log(error);
+            const msg = (error.responseText && error.responseText.includes("conteúdo de reforço"))
+                ? "Não há conteúdo de reforço para o seu assunto fraco no momento."
+                : "Não foi possível gerar a OVA de reforço agora.";
+            $(".pova-feedback").removeClass("text-muted").addClass("text-danger").text(msg);
+            button.prop("disabled", false).html("Gerar OVA de reforço");
+        });
     });
 
     // Asks the agent for a fresh recommendation on demand
@@ -145,6 +175,32 @@ function renderPanel(profile) {
         $(".edubot-area").html(`<p class="text-muted m-0">
             Nenhuma recomendação ainda — clique em "Pedir nova recomendação".</p>`);
     }
+}
+
+// MELHORIA (OVA personalizada): lista as OVAs de reforço do aluno, cada uma
+// abrindo a página navegável ova_personalizada.html?id=<id>
+function refreshPersonalizedOVAs() {
+    listPersonalizedOVAs()
+    .then(ovas => {
+        const list = $(".pova-list");
+        list.html("");
+        if (!ovas || ovas.length === 0) {
+            list.append(`<li class="list-group-item text-muted">Nenhuma OVA de reforço ainda.</li>`);
+            return;
+        }
+        ovas.forEach(pova => {
+            list.append($(`
+                <li class="list-group-item d-flex justify-content-between align-items-center">
+                    <span>
+                        <i class="bi bi-stars me-2 text-warning"></i>${pova.titulo}
+                        ${pova.competencia ? `<small class="text-muted d-block ms-4">${pova.competencia}</small>` : ""}
+                    </span>
+                    <a class="btn btn-sm btn-primary" href="ova_personalizada.html?id=${pova.personalized_ova_id}">Abrir</a>
+                </li>
+            `));
+        });
+    })
+    .catch(error => console.log(error));
 }
 
 // Renders a freshly generated recommendation (richer than the history entry)

@@ -201,6 +201,52 @@ export const getMe = () => request<StudentProfile>("/student/me");
 export const getEdubotRecommendation = () =>
   request<{ recommendation: Recommendation }>("/edubot/recommendation");
 
+// ---------------------------------------------------------------------------
+// MELHORIA (OVA personalizada): agente de tool-use que monta a OVA de reforço
+// ---------------------------------------------------------------------------
+
+export interface PersonalizedOVASummary {
+  personalized_ova_id: number;
+  titulo: string;
+  status: string;
+  created_at: string;
+  competencia: string | null;
+}
+
+export interface PersonalizedOVAContent {
+  personalized_ova_id: number;
+  titulo: string;
+  mensagem_aluno: string | null;
+  justificativa: string | null;
+  status: string;
+  created_at: string;
+  competencia: { competency_id: number; nome: string } | null;
+  recursos: OvaResource[];
+  questoes: OvaQuestion[];
+}
+
+export interface CreatedPersonalizedOVA {
+  personalized_ova_id: number;
+  titulo: string;
+  mensagem_aluno: string;
+  justificativa: string;
+  target_competency_id: number | null;
+  itens_recursos: number;
+  itens_questoes: number;
+  mock: boolean;
+  model_id: string;
+}
+
+// Dispara o agente: diagnostica o assunto fraco, seleciona conteúdo e persiste
+export const createPersonalizedOVA = () =>
+  request<CreatedPersonalizedOVA>("/edubot/personalized-ova", { method: "POST" });
+
+export const listPersonalizedOVAs = () =>
+  request<PersonalizedOVASummary[]>("/personalized-ova");
+
+export const getPersonalizedOVA = (id: number) =>
+  request<PersonalizedOVAContent>(`/personalized-ova/${id}`);
+
 export const getOVAResources = (ovaId: number) => request<OvaResource[]>(`/ova/${ovaId}/resources`);
 
 export const saveResourceProgress = (data: {

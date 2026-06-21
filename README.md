@@ -24,6 +24,8 @@ docker compose up --build
 - **Lista completa de arquivos alterados + passo a passo de execução:** [ALTERACOES_EDUBOT.md](ALTERACOES_EDUBOT.md)
 - **Mapeamento do código, bugs corrigidos e justificativa da arquitetura:** [ANALISE.md](ANALISE.md)
 - **Dados captados, formato de exportação e integração com LLM:** [DADOS_E_AGENTE.md](DADOS_E_AGENTE.md)
+- **OVA personalizada (agente de tool-use) — arquitetura, tools, endpoints e como cadastrar conteúdo:** [OVA_PERSONALIZADA.md](OVA_PERSONALIZADA.md)
+- **Como abrir o frontend novo (React/Lovable):** [COMO_ABRIR_FRONTEND_NOVO.md](COMO_ABRIR_FRONTEND_NOVO.md)
 
 Resumo do que existe agora:
 
@@ -42,6 +44,21 @@ Resumo do que existe agora:
   A chamada real ao Bedrock ainda **não** está conectada (por decisão de projeto).
 - **Painel do aluno (4.4)** — `http://localhost:8010/html/painel.html`: recursos
   consumidos por OVA, status das competências e última recomendação do EduBot.
+- **OVA personalizada de reforço (agente de tool-use)** — o EduBot deixa de ser
+  uma chamada só e vira um **agente** com ferramentas: ele identifica a
+  competência em que o aluno foi pior (erro no quiz por competência), consulta o
+  **banco de conteúdo classificado por competência** (`resources.competency_id` +
+  questões) e **monta uma OVA de reforço** (tabelas `personalized_ova` /
+  `personalized_ova_item`). Disponível nos **dois frontends**: no React/Lovable
+  (`/app/`) há a aba **"Reforço"** na barra lateral; no clássico, o botão **"Gerar
+  OVA de reforço"** no painel abre `html/ova_personalizada.html?id=<id>`. Ambos
+  reaproveitam os mesmos players e o mesmo quiz (corrigido no servidor).
+  - O **loop de tool-use é real e definitivo**; só o "cérebro" (o modelo) é
+    mockado — o `_MockAgentClient` em
+    [Back-End/edubot_agent/personalized.py](Back-End/edubot_agent/personalized.py)
+    devolve o **mesmo envelope de tool-use da Anthropic Messages API**. Ligar a
+    LLM real = trocar o cliente (esqueleto comentado no fim do arquivo); as tools,
+    o loop e o parsing já são os definitivos.
 
 ## Endpoints novos
 
@@ -52,6 +69,9 @@ Resumo do que existe agora:
 | POST | `/progress/resource` | ✔ | Upsert de consumo de um recurso (vídeo/podcast/atividade) |
 | GET | `/student/me` | ✔ | Perfil completo do aluno logado |
 | GET | `/edubot/recommendation` | ✔ | Recomendação do agente (mock Bedrock) |
+| POST | `/edubot/personalized-ova` | ✔ | **Agente de tool-use**: diagnostica o assunto fraco do aluno e monta uma OVA de reforço (recursos + questões do banco) |
+| GET | `/personalized-ova` | ✔ | Lista as OVAs de reforço do aluno logado |
+| GET | `/personalized-ova/<id>` | ✔ | Conteúdo de uma OVA de reforço (recursos + quiz) |
 
 ## Teste local sem Docker
 

@@ -144,6 +144,26 @@ export function getEdubotRecommendation() {
     return doRequest("/edubot/recommendation", {}, "GET");
 }
 
+// ---------------------------------------------------------------------------
+// MELHORIA (OVA personalizada): agente de tool-use que monta uma OVA de reforço
+// ---------------------------------------------------------------------------
+
+// Dispara o agente, que diagnostica o assunto fraco do aluno logado, seleciona
+// conteúdo do banco e PERSISTE uma OVA personalizada (devolve o id criado).
+export function createPersonalizedOVA() {
+    return doRequest("/edubot/personalized-ova", {}, "POST");
+}
+
+// Lista as OVAs personalizadas do aluno logado
+export function listPersonalizedOVAs() {
+    return doRequest("/personalized-ova", {}, "GET");
+}
+
+// Conteúdo de uma OVA personalizada (recursos + questões) para renderização
+export function getPersonalizedOVA(id) {
+    return doRequest(`/personalized-ova/${id}`, {}, "GET");
+}
+
 /*
 Calls the request function with the parameters to get all the questions 
 of an OVA along with the answers given by the student.

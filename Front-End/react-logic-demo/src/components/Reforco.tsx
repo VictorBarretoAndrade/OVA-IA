@@ -1,0 +1,361 @@
+/*
+INTEGRAÇÃO (OVA personalizada) — Aba "Reforço".
+
+O EduBot, agora um AGENTE de tool-use no backend, diagnostica o assunto em que o
+aluno foi pior e monta uma OVA de reforço (vídeos, textos e questões do banco
+classificado por competência). Esta tela:
+  - aciona o agente (POST /edubot/personalized-ova),
+  - lista as OVAs de reforço já geradas (GET /personalized-ova),
+  - abre uma OVA e a renderiza reaproveitando os mesmos players (VideoPlayer/
+    AudioPlayer) e o mesmo padrão de quiz corrigido no servidor das OVAs normais
+    (GET /personalized-ova/<id>).
+O consumo é persistido em resource_progress / attempts, realimentando o perfil
+e o próprio EduBot.
+*/
+import { ArrowLeft, ClipboardCheck, FileText, LoaderCircle, Sparkles, Stars } from "lucide-react";
+import { useEffect, useState } from "react";
+import {
+  OvaResource,
+  PersonalizedOVAContent,
+  PersonalizedOVASummary,
+  StudentProfile,
+  answerQuestion,
+  createPersonalizedOVA,
+  getPersonalizedOVA,
+  getSession,
+  listPersonalizedOVAs,
+  saveResourceProgress
+} from "../services/api";
+import { AudioPlayer } from "./players/AudioPlayer";
+import { MediaProgress, VideoPlayer } from "./players/VideoPlayer";
+
+interface ReforcoProps {
+  profile: StudentProfile;
+  onTracked: () => void;
+}
+
+const LETTERS = "abcdefghijklmnopqrstuvwxyz";
+
+export const Reforco = ({ onTracked }: ReforcoProps) => {
+  const [ovas, setOvas] = useState<PersonalizedOVASummary[]>([]);
+  const [active, setActive] = useState<PersonalizedOVAContent | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const refreshList = () =>
+    listPersonalizedOVAs().then(setOvas).catch(() => setError("Não foi possível listar as OVAs de reforço."));
+
+  useEffect(() => {
+    refreshList();
+  }, []);
+
+  const generate = async () => {
+    setGenerating(true);
+    setError(null);
+    setFeedback("O EduBot está diagnosticando e montando sua trilha de reforço...");
+    try {
+      const created = await createPersonalizedOVA();
+      setFeedback(created.mensagem_aluno || "OVA de reforço criada!");
+      await refreshList();
+      await open(created.personalized_ova_id);
+      onTracked();
+    } catch (err) {
+      setFeedback(null);
+      const msg = (err as { message?: string }).message ?? "";
+      setError(
+        msg.includes("conteúdo de reforço")
+          ? "Não há conteúdo de reforço para o seu assunto fraco no momento."
+          : "Não foi possível gerar a OVA de reforço agora."
+      );
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const open = async (id: number) => {
+    setLoadingId(id);
+    setError(null);
+    try {
+      setActive(await getPersonalizedOVA(id));
+    } catch {
+      setError("Não foi possível abrir a OVA de reforço.");
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const saveProgress = (resource: OvaResource, state: Partial<MediaProgress>) =>
+    saveResourceProgress({
+      resource_id: resource.resource_id,
+      perc_consumed: state.perc ?? 0,
+      seconds_consumed: state.seconds ?? 0,
+      completed: state.completed ?? false
+    }).catch((err) => console.error(err));
+
+  // ----- Visualização de uma OVA de reforço aberta -------------------------
+  if (active) {
+    return (
+      <section className="space-y-6">
+        <button
+          onClick={() => setActive(null)}
+          className="flex items-center gap-2 text-muted transition hover:text-ink"
+        >
+          <ArrowLeft size={18} /> Voltar para minhas OVAs de reforço
+        </button>
+
+        <div className="rounded-[8px] border border-line bg-white p-8 shadow-soft">
+          {active.competencia && (
+            <span className="rounded-[8px] bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-800">
+              Foco: {active.competencia.nome}
+            </span>
+          )}
+          <h1 className="mt-3 text-3xl font-bold text-ink">{active.titulo}</h1>
+          {active.mensagem_aluno && (
+            <p className="mt-3 rounded-[8px] bg-indigo-50/60 p-5 text-lg leading-8 text-slate-800">
+              {active.mensagem_aluno}
+            </p>
+          )}
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-xl font-bold text-ink">Conteúdo de reforço</h2>
+          <div className="space-y-4">
+            {active.recursos.map((resource) => {
+              if (resource.resource_type === "video") {
+                return (
+                  <VideoPlayer
+                    key={resource.resource_id}
+                    url={resource.resource_url}
+                    mediaType={resource.media_type}
+                    title={resource.resource_title}
+                    initialPerc={resource.perc_consumed}
+                    onProgress={(state) => saveProgress(resource, state)}
+                  />
+                );
+              }
+              if (resource.resource_type === "podcast") {
+                return (
+                  <AudioPlayer
+                    key={resource.resource_id}
+                    url={resource.resource_url}
+                    title={resource.resource_title}
+                    durationSeconds={resource.duration_seconds}
+                    initialSeconds={resource.seconds_consumed}
+                    onProgress={(state) => saveProgress(resource, state)}
+                  />
+                );
+              }
+              if (resource.resource_type === "texto") {
+                return (
+                  <div
+                    key={resource.resource_id}
+                    className="flex items-center justify-between rounded-[8px] border border-line bg-white p-5"
+                  >
+                    <span className="flex items-center gap-2 font-semibold text-ink">
+                      <FileText size={20} className="text-brand" />
+                      {resource.resource_title}
+                    </span>
+                    <a
+                      href={resource.resource_url ?? "#"}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={() => saveProgress(resource, { perc: 100, completed: true })}
+                      className="rounded-[8px] border border-brand px-4 py-2 font-semibold text-brand transition hover:bg-indigo-50"
+                    >
+                      {resource.completed ? "Reler" : "Abrir leitura"}
+                    </a>
+                  </div>
+                );
+              }
+              if (resource.resource_type === "atividade") {
+                return (
+                  <ActivityCard
+                    key={resource.resource_id}
+                    resource={resource}
+                    onComplete={() => saveProgress(resource, { perc: 100, completed: true })}
+                  />
+                );
+              }
+              return null;
+            })}
+            {active.recursos.length === 0 && (
+              <p className="rounded-[8px] border border-line bg-white p-6 text-muted">Nenhum recurso nesta trilha.</p>
+            )}
+          </div>
+        </div>
+
+        {active.questoes.length > 0 && (
+          <ReforcoQuiz questions={active.questoes} onTracked={onTracked} />
+        )}
+      </section>
+    );
+  }
+
+  // ----- Lista + geração ----------------------------------------------------
+  return (
+    <section className="space-y-6">
+      <div className="rounded-[8px] border border-line bg-white p-8 shadow-soft">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="flex items-center gap-2 text-3xl font-bold text-ink">
+              <Stars className="text-brand" /> OVA de Reforço
+            </h1>
+            <p className="mt-2 text-muted">
+              O EduBot identifica o assunto em que você foi pior e monta uma trilha de reforço só para você.
+            </p>
+          </div>
+          <button
+            onClick={generate}
+            disabled={generating}
+            className="flex h-12 items-center gap-2 rounded-[8px] bg-brand px-5 font-bold text-white disabled:bg-slate-300"
+          >
+            {generating ? <LoaderCircle className="animate-spin" size={20} /> : <Sparkles size={20} />}
+            Gerar OVA de reforço
+          </button>
+        </div>
+        {feedback && <p className="mt-5 rounded-[8px] bg-indigo-50/60 p-4 text-slate-800">{feedback}</p>}
+        {error && <p className="mt-5 rounded-[8px] bg-rose-50 p-4 font-semibold text-rose-700">{error}</p>}
+      </div>
+
+      <div className="space-y-3">
+        {ovas.map((pova) => (
+          <button
+            key={pova.personalized_ova_id}
+            onClick={() => open(pova.personalized_ova_id)}
+            className="flex w-full items-center justify-between rounded-[8px] border border-line bg-white p-5 text-left transition hover:border-brand"
+          >
+            <span>
+              <span className="flex items-center gap-2 font-bold text-ink">
+                <Stars size={18} className="text-coral" />
+                {pova.titulo}
+              </span>
+              {pova.competencia && <span className="mt-1 block text-sm text-muted">{pova.competencia}</span>}
+            </span>
+            {loadingId === pova.personalized_ova_id ? (
+              <LoaderCircle className="animate-spin text-brand" size={20} />
+            ) : (
+              <span className="rounded-[8px] bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-800">Abrir</span>
+            )}
+          </button>
+        ))}
+        {ovas.length === 0 && (
+          <p className="rounded-[8px] border border-line bg-white p-6 text-muted">
+            Nenhuma OVA de reforço ainda — clique em <strong>"Gerar OVA de reforço"</strong>.
+          </p>
+        )}
+      </div>
+    </section>
+  );
+};
+
+// Cartão de atividade prática com botão de conclusão (estado local)
+const ActivityCard = ({ resource, onComplete }: { resource: OvaResource; onComplete: () => void }) => {
+  const [done, setDone] = useState(resource.completed);
+  return (
+    <div className="flex items-center justify-between rounded-[8px] border border-line bg-white p-5">
+      <span className="flex items-center gap-2 font-semibold text-ink">
+        <ClipboardCheck size={20} className="text-brand" />
+        {resource.resource_title}
+      </span>
+      <button
+        disabled={done}
+        onClick={() => {
+          onComplete();
+          setDone(true);
+        }}
+        className={`rounded-[8px] px-4 py-2 font-semibold ${
+          done ? "bg-emerald-100 text-emerald-700" : "border border-emerald-500 text-emerald-700 hover:bg-emerald-50"
+        }`}
+      >
+        {done ? "Concluída ✓" : "Marcar como concluída"}
+      </button>
+    </div>
+  );
+};
+
+// Quiz de fixação — mesmo padrão do Quiz.tsx: correção no servidor (answerQuestion)
+const ReforcoQuiz = ({
+  questions,
+  onTracked
+}: {
+  questions: PersonalizedOVAContent["questoes"];
+  onTracked: () => void;
+}) => {
+  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [feedback, setFeedback] = useState<Record<number, boolean>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const session = getSession();
+
+  const finish = async () => {
+    if (!session) return;
+    setSubmitting(true);
+    const newFeedback: Record<number, boolean> = {};
+    for (const question of questions) {
+      const selected = LETTERS[answers[question.question_id]];
+      try {
+        const graded = await answerQuestion(session.student_id, question.question_id, selected);
+        newFeedback[question.question_id] = graded.is_correct;
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    setFeedback(newFeedback);
+    setSubmitting(false);
+    onTracked();
+  };
+
+  return (
+    <div>
+      <h2 className="mb-3 text-xl font-bold text-ink">Quiz de fixação</h2>
+      <div className="space-y-5">
+        {questions.map((question, index) => {
+          const graded = feedback[question.question_id];
+          return (
+            <div
+              key={question.question_id}
+              className={`rounded-[8px] border bg-white p-6 ${
+                graded === undefined ? "border-line" : graded ? "border-emerald-300" : "border-rose-300"
+              }`}
+            >
+              <div className="text-sm font-semibold text-brand">Questão {index + 1}</div>
+              <h3 className="mt-2 text-lg font-bold text-ink">{question.statement}</h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                {question.alternatives.map((option, optionIndex) => (
+                  <label
+                    key={option}
+                    className={`flex min-h-12 cursor-pointer items-center rounded-[8px] border px-4 py-3 ${
+                      answers[question.question_id] === optionIndex ? "border-brand bg-indigo-50" : "border-line bg-white"
+                    }`}
+                  >
+                    <input
+                      className="mr-3"
+                      type="radio"
+                      checked={answers[question.question_id] === optionIndex}
+                      onChange={() => setAnswers((current) => ({ ...current, [question.question_id]: optionIndex }))}
+                    />
+                    <span className="mr-2 font-bold text-muted">{LETTERS[optionIndex]})</span>
+                    {option}
+                  </label>
+                ))}
+              </div>
+              {graded !== undefined && (
+                <p className={`mt-3 font-semibold ${graded ? "text-emerald-700" : "text-rose-700"}`}>
+                  {graded ? "Correta!" : "Incorreta."}
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <button
+        onClick={finish}
+        disabled={submitting || Object.keys(answers).length < questions.length}
+        className="mt-6 h-12 rounded-[8px] bg-coral px-6 font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+      >
+        {submitting ? "Corrigindo no servidor..." : "Finalizar quiz"}
+      </button>
+    </div>
+  );
+};

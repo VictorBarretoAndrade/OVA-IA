@@ -68,7 +68,9 @@ interactions ──── students ──── courses
 | `ova_progress` | Progresso do aluno por OVA | `student_id`, `ova_id`, `read_time`, `perc_scrolled`, `completed`, `last_access` |
 | `attempts` | Tentativas das questões (inclui erradas) | `student_id`, `question_id`, `is_correct`, `attempt_time` |
 | `interventions` | Histórico de intervenções (EduBot / admin) | `student_id`, `date`, `type`, `description`, `result` |
-| `resources` | Recursos disponíveis por OVA | `ova_id`, `resource_type`, `resource_title` |
+| `resources` | Recursos disponíveis por OVA | `ova_id`, `resource_type`, `resource_title`, `resource_url`, `media_type`, `competency_id` |
+| `personalized_ova` | OVA de reforço gerada pelo agente para um aluno | `student_id`, `target_competency_id`, `title`, `message`, `rationale`, `status` |
+| `personalized_ova_item` | Itens (recurso/questão) de uma OVA de reforço | `personalized_ova_id`, `item_kind`, `resource_id`, `question_id`, `position` |
 
 ### Competências mapeadas (6 total)
 
@@ -95,6 +97,9 @@ interactions ──── students ──── courses
 | POST | `/plot/ova` | Desempenho por aluno em uma OVA específica |
 | POST | `/plot/interaction/ova` | Contagem de interações do aluno em uma OVA |
 | GET | `/student/report/<id>` | Retorna relatório agregado do aluno (JSON) com progresso, competências e histórico de intervenções |
+| POST | `/edubot/personalized-ova` | **Agente de tool-use**: diagnostica a competência fraca e monta uma OVA de reforço (ver [OVA_PERSONALIZADA.md](OVA_PERSONALIZADA.md)) |
+| GET | `/personalized-ova` | Lista as OVAs de reforço do aluno logado |
+| GET | `/personalized-ova/<id>` | Conteúdo de uma OVA de reforço (recursos + quiz) |
 
 ---
 

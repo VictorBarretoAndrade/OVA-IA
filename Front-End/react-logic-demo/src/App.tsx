@@ -11,6 +11,7 @@ import { Contents } from "./components/Contents";
 import { Evolution } from "./components/Evolution";
 import { Exercises } from "./components/Exercises";
 import { Quiz } from "./components/Quiz";
+import { Reforco } from "./components/Reforco";
 import { Report } from "./components/Report";
 import { Sidebar, Topbar } from "./components/Sidebar";
 import { Login } from "./components/Login";
@@ -69,6 +70,7 @@ const App = () => {
     if (activeView === "contents") return <Contents profile={profile} onTracked={refreshProfile} />;
     if (activeView === "exercises") return <Exercises profile={profile} onTracked={refreshProfile} />;
     if (activeView === "quiz") return <Quiz profile={profile} onTracked={refreshProfile} />;
+    if (activeView === "reforco") return <Reforco profile={profile} onTracked={refreshProfile} />;
     if (activeView === "evolution") return <Evolution profile={profile} />;
     if (activeView === "report") return <Report profile={profile} onTracked={refreshProfile} />;
     return <Dashboard profile={profile} onOpenContent={() => setActiveView("contents")} />;

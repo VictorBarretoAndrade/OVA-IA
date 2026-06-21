@@ -55,7 +55,12 @@ def _days_without_access(student):
 
 def _competency_statuses(student):
     """Status per competency of the student's course: não iniciada /
-    em desenvolvimento / desenvolvida (ratio of correct answers)."""
+    em desenvolvimento / desenvolvida (ratio of correct answers).
+
+    MELHORIA (OVA personalizada): cada competência traz também o desempenho no
+    quiz (tentativas/erros/taxa_erro vindos de `attempts`). É esse erro POR
+    competência — e não a taxa global — que o agente usa para decidir QUAL
+    assunto remediar com uma OVA personalizada."""
     statuses = []
     competencies = (Competencies
                     .select()
@@ -70,6 +75,22 @@ def _competency_statuses(student):
                    .where((Answers.student_id == student) &
                           (Questions.competency_id == comp.competency_id))
                    .count())
+        # Quiz attempts on this competency's questions (right and wrong)
+        comp_questions = Questions.select(Questions.question_id).where(
+            Questions.competency_id == comp.competency_id)
+        attempts_total = (Attempts
+                          .select()
+                          .where((Attempts.student_id == student) &
+                                 (Attempts.question_id.in_(comp_questions)))
+                          .count())
+        attempts_wrong = (Attempts
+                          .select()
+                          .where((Attempts.student_id == student) &
+                                 (Attempts.question_id.in_(comp_questions)) &
+                                 (Attempts.is_correct == False))
+                          .count())
+        taxa_erro = round(attempts_wrong / attempts_total, 2) if attempts_total else None
+
         ratio = (correct / total) if total else 0
         if total == 0 or correct == 0:
             status = "não iniciada"
@@ -82,7 +103,10 @@ def _competency_statuses(student):
             "nome": comp.competency_description,
             "acertos": correct,
             "total_questoes": total,
-            "status": status
+            "status": status,
+            "tentativas": attempts_total,
+            "erros": attempts_wrong,
+            "taxa_erro": taxa_erro
         })
     return statuses
 

@@ -5,6 +5,51 @@
 
 ---
 
+## -1. NOVO: OVA personalizada — agente de tool-use (2026-06-21)
+
+O EduBot passou a ser um **agente** que monta uma **OVA de reforço** para o aluno
+a partir do assunto em que ele foi pior. Documentação completa da feature:
+[OVA_PERSONALIZADA.md](OVA_PERSONALIZADA.md). Resumo das alterações:
+
+**Arquivos NOVOS**
+
+| Arquivo | O que é |
+|---------|---------|
+| [Back-End/data/models/personalized_ova.py](Back-End/data/models/personalized_ova.py) | Modelos `PersonalizedOVA` + `PersonalizedOVAItem` (a OVA de reforço e seus itens, que apontam para recursos/questões existentes) |
+| [Back-End/edubot_agent/tools.py](Back-End/edubot_agent/tools.py) | 4 tools do agente (JSON-schema Anthropic + funções no banco) + `execute_tool`, com validação de IDs por competência |
+| [Back-End/edubot_agent/personalized.py](Back-End/edubot_agent/personalized.py) | Loop de tool-use **real** + `_MockAgentClient` (devolve o envelope de tool-use da Anthropic) + `run_personalized_ova_agent`; esqueleto da LLM real comentado |
+| [Back-End/api/routes/personalizedOvaRoute.py](Back-End/api/routes/personalizedOvaRoute.py) | Rotas `POST /edubot/personalized-ova`, `GET /personalized-ova`, `GET /personalized-ova/<id>` |
+| [Front-End/files/html/ova_personalizada.html](Front-End/files/html/ova_personalizada.html) + [Front-End/files/js/ova_personalizada.js](Front-End/files/js/ova_personalizada.js) | Página navegável da OVA de reforço (clássico), reaproveitando players + `makeQuestions` |
+| [Front-End/react-logic-demo/src/components/Reforco.tsx](Front-End/react-logic-demo/src/components/Reforco.tsx) | Aba **"Reforço"** no app React (gerar + listar + visualizar) |
+| [OVA_PERSONALIZADA.md](OVA_PERSONALIZADA.md) · [COMO_ABRIR_FRONTEND_NOVO.md](COMO_ABRIR_FRONTEND_NOVO.md) | Documentação da feature e guia de abertura do frontend novo |
+
+**Arquivos MODIFICADOS**
+
+| Arquivo | O que mudou |
+|---------|-------------|
+| [Back-End/data/models/resources.py](Back-End/data/models/resources.py) | Novo campo `competency_id` (FK nullable) — classifica o recurso por assunto (banco de remediação) |
+| [Back-End/data/models/__init__.py](Back-End/data/models/__init__.py) | Exporta `PersonalizedOVA` e `PersonalizedOVAItem` |
+| [Back-End/api/services/student_context.py](Back-End/api/services/student_context.py) | `_competency_statuses` agora traz `tentativas`/`erros`/`taxa_erro` por competência (de `attempts`) — sinal usado para escolher o assunto a remediar |
+| [Back-End/edubot_agent/__init__.py](Back-End/edubot_agent/__init__.py) | Exporta `run_personalized_ova_agent` |
+| [Back-End/api/api.py](Back-End/api/api.py) | Registra o blueprint `personalized_ova` |
+| [Back-End/tools/init_test_db.py](Back-End/tools/init_test_db.py) | Cria as tabelas novas; recursos com `competency_id`; banco de remediação + tentativas que deixam uma competência fraca (dados de teste do agente) |
+| [Database/sql/ddl_extra.sql](Database/sql/ddl_extra.sql) | Coluna `resources.competency_id`; tabelas `personalized_ova` e `personalized_ova_item` |
+| [Database/sql/dml_extra.sql](Database/sql/dml_extra.sql) | Recursos 1–16 taggeados por competência + banco de remediação (ids 17–28: vídeo + texto por competência) |
+| [Front-End/files/js/request.js](Front-End/files/js/request.js) | `createPersonalizedOVA`, `listPersonalizedOVAs`, `getPersonalizedOVA` |
+| [Front-End/files/js/painel.js](Front-End/files/js/painel.js) + [painel.html](Front-End/files/html/painel.html) | Botão "Gerar OVA de reforço" + lista das OVAs de reforço |
+| [Front-End/react-logic-demo/src/services/api.ts](Front-End/react-logic-demo/src/services/api.ts) | Tipos + funções `createPersonalizedOVA`/`listPersonalizedOVAs`/`getPersonalizedOVA` |
+| [Front-End/react-logic-demo/src/App.tsx](Front-End/react-logic-demo/src/App.tsx) + [Sidebar.tsx](Front-End/react-logic-demo/src/components/Sidebar.tsx) | View e item de navegação "Reforço" |
+| [README.md](README.md) | Endpoints novos + descrição da feature |
+
+**Endpoints novos**: `POST /edubot/personalized-ova`, `GET /personalized-ova`,
+`GET /personalized-ova/<id>` (todos `@require_auth`).
+
+**Verificação**: smoke do agente (identificou a competência fraca, montou a OVA em
+5 iterações de tool-use) + smoke HTTP (401/201/conteúdo/sem gabarito/404);
+`compileall` OK. React revisado por tipos (build roda no container).
+
+---
+
 ## 0. NOVO frontend React integrado (12/06)
 
 O repositório continha um **segundo frontend** em `Front-End/react-logic-demo/`

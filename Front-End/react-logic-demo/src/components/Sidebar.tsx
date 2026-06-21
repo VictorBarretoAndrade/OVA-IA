@@ -1,4 +1,4 @@
-import { Award, BarChart3, Bell, BookOpen, CalendarDays, GraduationCap, Grid2X2, LogOut, MessageCircle, Search, TrendingUp } from "lucide-react";
+import { Award, BarChart3, Bell, BookOpen, CalendarDays, GraduationCap, Grid2X2, LogOut, MessageCircle, Search, Stars, TrendingUp } from "lucide-react";
 import { StudentProfile } from "../services/api";
 
 interface SidebarProps {
@@ -13,6 +13,7 @@ const navItems = [
   { id: "contents", label: "Conteúdos", icon: BookOpen },
   { id: "exercises", label: "Atividades", icon: CalendarDays },
   { id: "quiz", label: "Quiz", icon: Award },
+  { id: "reforco", label: "Reforço", icon: Stars },
   { id: "evolution", label: "Meu Desempenho", icon: BarChart3 },
   { id: "report", label: "Tutor IA", icon: MessageCircle }
 ];

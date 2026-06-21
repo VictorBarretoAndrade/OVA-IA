@@ -1,5 +1,6 @@
 from base import BaseModel
 from ovas import OVAs
+from competencies import Competencies
 from peewee import *
 
 
@@ -25,3 +26,10 @@ class Resources(BaseModel):
     media_type = CharField(max_length=30, null=True)
     # Duration in seconds (when known) — used to compute consumption percentages
     duration_seconds = IntegerField(null=True)
+    # MELHORIA (OVA personalizada): a qual competência este recurso remedia.
+    # É o que torna os recursos um "banco pré-selecionado" consultável por
+    # assunto: o agente EduBot busca recursos por competency_id para montar a
+    # OVA de reforço. Nulo para recursos genéricos do OVA (quiz/atividade) ou
+    # ainda não classificados.
+    competency_id = ForeignKeyField(Competencies, backref="resources", null=True,
+                                     on_delete="set null", on_update="cascade")

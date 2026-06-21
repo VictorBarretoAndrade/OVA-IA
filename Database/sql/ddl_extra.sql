@@ -45,7 +45,11 @@ CREATE TABLE resources (
     resource_url TEXT,
     media_type VARCHAR(30),
     duration_seconds INT,
-    FOREIGN KEY (ova_id) REFERENCES ovas(ova_id) ON DELETE CASCADE ON UPDATE CASCADE
+    -- MELHORIA (OVA personalizada): competência que este recurso remedia.
+    -- Torna `resources` um banco consultável por assunto pelo agente EduBot.
+    competency_id INT,
+    FOREIGN KEY (ova_id) REFERENCES ovas(ova_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (competency_id) REFERENCES competencies(competency_id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- MELHORIA (4.1): per-student consumption of each resource
@@ -61,4 +65,34 @@ CREATE TABLE resource_progress (
     FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (resource_id) REFERENCES resources(resource_id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT uc_resource_progress UNIQUE (student_id, resource_id)
+);
+
+-- MELHORIA (OVA personalizada): OVA de reforço montada pelo agente EduBot para
+-- um aluno, a partir de uma competência em que ele foi mal. Não tem página HTML
+-- própria — o frontend a renderiza a partir dos itens selecionados.
+CREATE TABLE personalized_ova (
+    personalized_ova_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT,
+    target_competency_id INT,
+    title VARCHAR(255),
+    message TEXT,
+    rationale TEXT,
+    status VARCHAR(30) DEFAULT 'ativa',
+    created_at DATETIME,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (target_competency_id) REFERENCES competencies(competency_id) ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- Itens selecionados da OVA personalizada: cada linha aponta para um recurso
+-- OU uma questão do banco de conteúdo existente (sem duplicar o conteúdo).
+CREATE TABLE personalized_ova_item (
+    item_id INT PRIMARY KEY AUTO_INCREMENT,
+    personalized_ova_id INT,
+    item_kind VARCHAR(20),          -- 'resource' | 'question'
+    resource_id INT,
+    question_id INT,
+    position INT DEFAULT 0,
+    FOREIGN KEY (personalized_ova_id) REFERENCES personalized_ova(personalized_ova_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (resource_id) REFERENCES resources(resource_id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions(question_id) ON DELETE CASCADE ON UPDATE CASCADE
 );
