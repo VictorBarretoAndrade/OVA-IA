@@ -82,9 +82,11 @@ npm run dev
 O Vite sobe em **http://127.0.0.1:5173/** (porta padrão do Vite). Abra esse
 endereço — o app recarrega sozinho a cada alteração.
 
-> Observação: em dev, o app continua chamando a API na porta **5010** (definida
-> em `src/services/api.ts`). Por isso o backend (container) precisa estar
-> rodando em paralelo; só o `npm run dev` não basta.
+> Observação: em dev, o app continua chamando a API na porta **5010** e o leitor
+> clássico na **8010** — os valores padrão ficam em `src/services/config.ts` e
+> podem ser sobrescritos por variáveis de ambiente (`VITE_API_URL` /
+> `VITE_CLASSIC_URL`); veja `.env.example`. Por isso o backend (container)
+> precisa estar rodando em paralelo; só o `npm run dev` não basta.
 
 Outros scripts (em `package.json`):
 

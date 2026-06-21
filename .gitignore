@@ -26,3 +26,7 @@ build/
 node_modules/
 Front-End/files/app/
 Front-End/react-logic-demo/dist/
+
+# Variáveis de ambiente locais do frontend (use .env.example como modelo)
+Front-End/react-logic-demo/.env
+Front-End/react-logic-demo/.env.local

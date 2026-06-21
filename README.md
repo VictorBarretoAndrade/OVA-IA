@@ -25,6 +25,7 @@ docker compose up --build
 - **Mapeamento do código, bugs corrigidos e justificativa da arquitetura:** [ANALISE.md](ANALISE.md)
 - **Dados captados, formato de exportação e integração com LLM:** [DADOS_E_AGENTE.md](DADOS_E_AGENTE.md)
 - **OVA personalizada (agente de tool-use) — arquitetura, tools, endpoints e como cadastrar conteúdo:** [OVA_PERSONALIZADA.md](OVA_PERSONALIZADA.md)
+- **Como adicionar conteúdo (OVAs, vídeos, podcasts e textos) via SQL:** [COMO_ADICIONAR_CONTEUDO.md](COMO_ADICIONAR_CONTEUDO.md)
 - **Como abrir o frontend novo (React/Lovable):** [COMO_ABRIR_FRONTEND_NOVO.md](COMO_ABRIR_FRONTEND_NOVO.md)
 
 Resumo do que existe agora:

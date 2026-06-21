@@ -12,6 +12,7 @@ import {
   getOVAQuestions,
   getSession
 } from "../services/api";
+import { useToast } from "./ui/Toast";
 
 interface QuizProps {
   profile: StudentProfile;
@@ -35,6 +36,7 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
   const [submitting, setSubmitting] = useState(false);
 
   const session = getSession();
+  const toast = useToast();
 
   useEffect(() => {
     if (!activeOvaId || !session) return;
@@ -52,6 +54,7 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
     setSubmitting(true);
     const newFeedback: Record<number, boolean> = {};
     let correct = 0;
+    let failed = false;
 
     // Cada questão é corrigida pelo backend — o gabarito nunca chega ao navegador
     for (const question of questions) {
@@ -63,9 +66,11 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
         if (graded.is_correct) correct += 1;
       } catch (error) {
         console.error(error);
+        failed = true;
       }
     }
 
+    if (failed) toast.error("Algumas respostas não puderam ser corrigidas. Verifique a conexão.");
     setFeedback(newFeedback);
     setResult({
       correct,

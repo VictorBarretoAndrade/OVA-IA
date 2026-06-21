@@ -28,6 +28,7 @@ import {
 } from "../services/api";
 import { AudioPlayer } from "./players/AudioPlayer";
 import { MediaProgress, VideoPlayer } from "./players/VideoPlayer";
+import { useToast } from "./ui/Toast";
 
 interface ReforcoProps {
   profile: StudentProfile;
@@ -43,6 +44,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const refreshList = () =>
     listPersonalizedOVAs().then(setOvas).catch(() => setError("Não foi possível listar as OVAs de reforço."));
@@ -92,7 +94,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
       perc_consumed: state.perc ?? 0,
       seconds_consumed: state.seconds ?? 0,
       completed: state.completed ?? false
-    }).catch((err) => console.error(err));
+    }).catch(() => toast.error("Não foi possível salvar seu progresso. Verifique a conexão."));
 
   // ----- Visualização de uma OVA de reforço aberta -------------------------
   if (active) {
@@ -287,11 +289,13 @@ const ReforcoQuiz = ({
   const [feedback, setFeedback] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const session = getSession();
+  const toast = useToast();
 
   const finish = async () => {
     if (!session) return;
     setSubmitting(true);
     const newFeedback: Record<number, boolean> = {};
+    let failed = false;
     for (const question of questions) {
       const selected = LETTERS[answers[question.question_id]];
       try {
@@ -299,10 +303,12 @@ const ReforcoQuiz = ({
         newFeedback[question.question_id] = graded.is_correct;
       } catch (err) {
         console.error(err);
+        failed = true;
       }
     }
     setFeedback(newFeedback);
     setSubmitting(false);
+    if (failed) toast.error("Algumas respostas não puderam ser corrigidas. Tente novamente.");
     onTracked();
   };
 

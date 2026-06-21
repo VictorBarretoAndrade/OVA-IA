@@ -4,7 +4,7 @@ nome/curso do aluno, consumo de recursos, taxa de erro do quiz, dias sem
 acesso, formato preferido e competências com status do backend.
 Layout e identidade visual do protótipo Lovable preservados.
 */
-import { Code2, Timer, Trophy, ClipboardCheck, TrendingUp } from "lucide-react";
+import { Bell, Code2, Timer, Trophy, ClipboardCheck, TrendingUp } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
 import { StudentProfile } from "../services/api";
@@ -122,21 +122,26 @@ export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
         </div>
 
         <div className="rounded-[8px] border border-line bg-white p-6">
-          <h3 className="text-xl font-bold text-ink">Perfil rastreado (JSON)</h3>
-          <pre className="mt-4 max-h-80 overflow-auto rounded-[8px] bg-slate-950 p-4 text-xs leading-relaxed text-slate-100">
-            {JSON.stringify(
-              {
-                estudante: profile.estudante,
-                dias_sem_acesso: profile.dias_sem_acesso,
-                recursos: profile.recursos,
-                preferencia_formato: profile.preferencia_formato,
-                quiz: profile.quiz,
-                atividades_pendentes: profile.atividades_pendentes
-              },
-              null,
-              2
+          <h3 className="flex items-center gap-2 text-xl font-bold text-ink">
+            <Bell size={20} className="text-brand" /> Avisos do EduBot
+          </h3>
+          <div className="mt-4 space-y-3">
+            {profile.historico_intervencoes.slice(0, 5).map((item, index) => (
+              <div key={`${item.data}-${index}`} className="rounded-[8px] bg-slate-50 p-4">
+                <div className="flex items-center justify-between text-xs text-muted">
+                  <span className="font-bold uppercase tracking-wide">{item.tipo}</span>
+                  <span>{item.data}</span>
+                </div>
+                {item.descricao && <p className="mt-2 text-sm text-slate-700">{item.descricao}</p>}
+              </div>
+            ))}
+            {profile.historico_intervencoes.length === 0 && (
+              <p className="rounded-[8px] bg-slate-50 p-4 text-sm text-muted">
+                Sem avisos por enquanto. Continue estudando e responda aos quizzes — o EduBot vai sugerir os
+                próximos passos por aqui.
+              </p>
             )}
-          </pre>
+          </div>
         </div>
       </div>
 

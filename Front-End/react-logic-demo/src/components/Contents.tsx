@@ -9,7 +9,7 @@ passou a mostrar os recursos REAIS de cada OVA (GET /ova/<id>/resources):
   - quiz      -> atalho para a aba Quiz
 Todo consumo vai para POST /progress/resource e atualiza o perfil.
 */
-import { BookOpenText, CheckCircle2, ExternalLink, ListChecks } from "lucide-react";
+import { BookOpenText, CheckCircle2, ExternalLink, FileText, ListChecks } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   OvaResource,
@@ -17,6 +17,8 @@ import {
   getOVAResources,
   saveResourceProgress
 } from "../services/api";
+import { CLASSIC_BASE_URL } from "../services/config";
+import { useToast } from "./ui/Toast";
 import { VideoPlayer, MediaProgress } from "./players/VideoPlayer";
 import { AudioPlayer } from "./players/AudioPlayer";
 
@@ -28,21 +30,29 @@ interface ContentsProps {
 // URL do leitor clássico. O Apache serve este app em http://localhost:8010/app/,
 // na MESMA origem das páginas clássicas — por isso o localStorage (token,
 // ova_id, ova_link) é compartilhado entre os dois frontends.
-const classicReaderUrl = () => {
-  const host = window.location.hostname || "localhost";
-  return `http://${host}:8010/html/iframe.html`;
-};
+const classicReaderUrl = () => `${CLASSIC_BASE_URL}/html/iframe.html`;
 
 export const Contents = ({ profile, onTracked }: ContentsProps) => {
   const [activeOvaId, setActiveOvaId] = useState(profile.ovas[0]?.ova_id ?? 0);
   const [resources, setResources] = useState<OvaResource[]>([]);
   const activeOva = profile.ovas.find((ova) => ova.ova_id === activeOvaId);
+  const toast = useToast();
 
   useEffect(() => {
     if (!activeOvaId) return;
+    // Guarda contra condição de corrida: ao trocar de OVA rápido, descarta a
+    // resposta de uma requisição antiga que chegue depois da nova.
+    let active = true;
     getOVAResources(activeOvaId)
-      .then(setResources)
-      .catch(() => setResources([]));
+      .then((data) => {
+        if (active) setResources(data);
+      })
+      .catch(() => {
+        if (active) setResources([]);
+      });
+    return () => {
+      active = false;
+    };
   }, [activeOvaId]);
 
   const trackMedia = (resource: OvaResource) => (progress: MediaProgress) => {
@@ -53,7 +63,13 @@ export const Contents = ({ profile, onTracked }: ContentsProps) => {
       completed: progress.completed
     })
       .then(onTracked)
-      .catch(console.error);
+      .catch(() => toast.error("Não foi possível salvar seu progresso. Verifique a conexão."));
+  };
+
+  const trackText = (resource: OvaResource) => {
+    saveResourceProgress({ resource_id: resource.resource_id, perc_consumed: 100, completed: true })
+      .then(onTracked)
+      .catch(() => toast.error("Não foi possível registrar a leitura."));
   };
 
   const completeActivity = (resource: OvaResource) => {
@@ -65,8 +81,9 @@ export const Contents = ({ profile, onTracked }: ContentsProps) => {
           )
         );
         onTracked();
+        toast.success("Atividade marcada como concluída!");
       })
-      .catch(console.error);
+      .catch(() => toast.error("Não foi possível concluir a atividade."));
   };
 
   const openClassicReader = (ova: { ova_id: number; link: string }) => {
@@ -123,6 +140,29 @@ export const Contents = ({ profile, onTracked }: ContentsProps) => {
             </div>
           </div>
         )}
+
+        {resources
+          .filter((resource) => resource.resource_type === "texto" && resource.resource_url)
+          .map((resource) => (
+            <div
+              key={resource.resource_id}
+              className="flex flex-wrap items-center justify-between gap-4 rounded-[8px] border border-line bg-white p-5"
+            >
+              <span className="flex items-center gap-2 font-semibold text-ink">
+                <FileText size={20} className="text-brand" />
+                {resource.resource_title}
+              </span>
+              <a
+                href={resource.resource_url ?? "#"}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => trackText(resource)}
+                className="rounded-[8px] border border-brand px-4 py-2 font-semibold text-brand transition hover:bg-indigo-50"
+              >
+                {resource.completed ? "Reler" : "Abrir leitura"}
+              </a>
+            </div>
+          ))}
 
         {resources
           .filter((resource) => resource.resource_type === "video")

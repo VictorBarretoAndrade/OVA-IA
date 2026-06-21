@@ -14,9 +14,7 @@ Convenções herdadas da API: o corpo das requisições é um array com um únic
 objeto ([data]) e o token vai no header Authorization: Bearer.
 */
 
-const PORT = 5010;
-const HOST = window.location.hostname || "localhost";
-const BASE_URL = `http://${HOST}:${PORT}`;
+import { API_BASE_URL as BASE_URL } from "./config";
 
 // Mesma chave usada pelo frontend clássico (files/js/request.js): como o app
 // React é servido pela MESMA origem do Apache (http://localhost:8010/app/),

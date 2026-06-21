@@ -5,18 +5,28 @@ e passou a consumir o backend Flask:
   - Logado    -> perfil real via GET /student/me alimenta todas as views
 O visual original (Lovable) foi mantido; apenas a fonte dos dados mudou.
 */
-import { useCallback, useEffect, useState } from "react";
-import { Dashboard } from "./components/Dashboard";
-import { Contents } from "./components/Contents";
-import { Evolution } from "./components/Evolution";
-import { Exercises } from "./components/Exercises";
-import { Quiz } from "./components/Quiz";
-import { Reforco } from "./components/Reforco";
-import { Report } from "./components/Report";
+import { Suspense, lazy, useCallback, useEffect, useState } from "react";
 import { Sidebar, Topbar } from "./components/Sidebar";
 import { Login } from "./components/Login";
 import { LoaderCircle } from "lucide-react";
 import { Session, StudentProfile, clearSession, getMe, getSession, getToken } from "./services/api";
+
+// MELHORIA — cada tela vira um chunk separado (React.lazy), então o app só baixa
+// o código da aba que o aluno abrir, em vez de tudo (inclusive os gráficos
+// pesados do Recharts) no primeiro carregamento.
+const Dashboard = lazy(() => import("./components/Dashboard").then((m) => ({ default: m.Dashboard })));
+const Contents = lazy(() => import("./components/Contents").then((m) => ({ default: m.Contents })));
+const Evolution = lazy(() => import("./components/Evolution").then((m) => ({ default: m.Evolution })));
+const Exercises = lazy(() => import("./components/Exercises").then((m) => ({ default: m.Exercises })));
+const Quiz = lazy(() => import("./components/Quiz").then((m) => ({ default: m.Quiz })));
+const Reforco = lazy(() => import("./components/Reforco").then((m) => ({ default: m.Reforco })));
+const Report = lazy(() => import("./components/Report").then((m) => ({ default: m.Report })));
+
+const ViewFallback = () => (
+  <div className="flex min-h-[40vh] items-center justify-center">
+    <LoaderCircle className="animate-spin text-brand" size={32} />
+  </div>
+);
 
 const App = () => {
   const [activeView, setActiveView] = useState("dashboard");
@@ -81,8 +91,10 @@ const App = () => {
       <div className="flex">
         <Sidebar activeView={activeView} onChangeView={setActiveView} studentName={profile.estudante.nome} onLogout={logout} />
         <main className="min-w-0 flex-1">
-          <Topbar profile={profile} />
-          <div className="mx-auto max-w-[1200px] px-5 py-8 lg:px-10">{renderView()}</div>
+          <Topbar profile={profile} onChangeView={setActiveView} />
+          <div className="mx-auto max-w-[1200px] px-5 py-8 lg:px-10">
+            <Suspense fallback={<ViewFallback />}>{renderView()}</Suspense>
+          </div>
         </main>
       </div>
     </div>

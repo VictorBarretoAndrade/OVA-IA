@@ -7,6 +7,7 @@ EduBot ("acessou conteúdo mas não concluiu atividade").
 import { CheckCircle2, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { StudentProfile, saveResourceProgress } from "../services/api";
+import { useToast } from "./ui/Toast";
 
 interface ExercisesProps {
   profile: StudentProfile;
@@ -15,6 +16,7 @@ interface ExercisesProps {
 
 export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
   const [completedNow, setCompletedNow] = useState<number[]>([]);
+  const toast = useToast();
 
   const activities = profile.ovas.flatMap((ova) =>
     ova.recursos
@@ -27,8 +29,9 @@ export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
       .then(() => {
         setCompletedNow((current) => [...current, resourceId]);
         onTracked();
+        toast.success("Atividade marcada como concluída!");
       })
-      .catch(console.error);
+      .catch(() => toast.error("Não foi possível concluir a atividade."));
   };
 
   return (
