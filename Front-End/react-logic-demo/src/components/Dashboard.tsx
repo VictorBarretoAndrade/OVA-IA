@@ -80,18 +80,19 @@ export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
               </p>
             </div>
           </div>
-          <div className="mt-4 h-56">
+          <div className="relative mt-4 h-56">
             <ResponsiveContainer>
               <RadialBarChart innerRadius="68%" outerRadius="95%" data={radialData} startAngle={90} endAngle={-270}>
                 <RadialBar dataKey="value" cornerRadius={8} background />
               </RadialBarChart>
             </ResponsiveContainer>
+            {/* Sobreposição centralizada no donut (centro exato, nos dois eixos) */}
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-4xl font-bold leading-none text-ink">{progresso}%</span>
+              <span className="mt-1 text-sm text-muted">concluído</span>
+            </div>
           </div>
-          <div className="-mt-36 flex h-28 flex-col items-center justify-center">
-            <span className="text-4xl font-bold text-ink">{progresso}%</span>
-            <span className="text-sm text-muted">concluído</span>
-          </div>
-          <button onClick={onOpenContent} className="mt-12 h-11 w-full rounded-[8px] bg-ink font-semibold text-white">
+          <button onClick={onOpenContent} className="mt-6 h-11 w-full rounded-[8px] bg-ink font-semibold text-white">
             Continuar estudando
           </button>
         </div>

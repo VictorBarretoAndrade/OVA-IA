@@ -25,6 +25,7 @@ docker compose up --build
 - **Ligar a IA real (AWS Bedrock) — só configurar a key:** [IA_AWS_SETUP.md](IA_AWS_SETUP.md)
 - **Requisitos do projeto × estado atual + backlog:** [REQUISITOS_E_BACKLOG.md](REQUISITOS_E_BACKLOG.md)
 - **Plano técnico das features faltantes para o roteiro do vídeo:** [PLANO_TECNICO_ROTEIRO.md](PLANO_TECNICO_ROTEIRO.md)
+- **Guia de gravação — passo a passo (onde clicar) por cena:** [GUIA_GRAVACAO_ROTEIRO.md](GUIA_GRAVACAO_ROTEIRO.md)
 - **Lista completa de arquivos alterados + passo a passo de execução:** [ALTERACOES_EDUBOT.md](ALTERACOES_EDUBOT.md)
 - **Mapeamento do código, bugs corrigidos e justificativa da arquitetura:** [ANALISE.md](ANALISE.md)
 - **Dados captados, formato de exportação e integração com LLM:** [DADOS_E_AGENTE.md](DADOS_E_AGENTE.md)
