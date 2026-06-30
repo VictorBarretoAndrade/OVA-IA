@@ -9,15 +9,15 @@ passou a mostrar os recursos REAIS de cada OVA (GET /ova/<id>/resources):
   - quiz      -> atalho para a aba Quiz
 Todo consumo vai para POST /progress/resource e atualiza o perfil.
 */
-import { BookOpenText, CheckCircle2, ExternalLink, FileText, ListChecks } from "lucide-react";
+import { BookOpenText, CheckCircle2, FileText, ListChecks } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   OvaResource,
+  OvaState,
   StudentProfile,
   getOVAResources,
   saveResourceProgress
 } from "../services/api";
-import { CLASSIC_BASE_URL } from "../services/config";
 import { useToast } from "./ui/Toast";
 import { VideoPlayer, MediaProgress } from "./players/VideoPlayer";
 import { AudioPlayer } from "./players/AudioPlayer";
@@ -25,14 +25,12 @@ import { AudioPlayer } from "./players/AudioPlayer";
 interface ContentsProps {
   profile: StudentProfile;
   onTracked: () => void;
+  // Abre o OVA no leitor NATIVO (dentro do dashboard) — substitui o leitor
+  // legado que abria em outra aba.
+  onOpenOva: (ova: OvaState) => void;
 }
 
-// URL do leitor clássico. O Apache serve este app em http://localhost:8010/app/,
-// na MESMA origem das páginas clássicas — por isso o localStorage (token,
-// ova_id, ova_link) é compartilhado entre os dois frontends.
-const classicReaderUrl = () => `${CLASSIC_BASE_URL}/html/iframe.html`;
-
-export const Contents = ({ profile, onTracked }: ContentsProps) => {
+export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
   const [activeOvaId, setActiveOvaId] = useState(profile.ovas[0]?.ova_id ?? 0);
   const [resources, setResources] = useState<OvaResource[]>([]);
   const activeOva = profile.ovas.find((ova) => ova.ova_id === activeOvaId);
@@ -86,13 +84,6 @@ export const Contents = ({ profile, onTracked }: ContentsProps) => {
       .catch(() => toast.error("Não foi possível concluir a atividade."));
   };
 
-  const openClassicReader = (ova: { ova_id: number; link: string }) => {
-    // O leitor clássico lê o OVA selecionado do localStorage (mesma origem)
-    localStorage.setItem("ova_id", String(ova.ova_id));
-    localStorage.setItem("ova_link", ova.link);
-    window.open(classicReaderUrl(), "_blank");
-  };
-
   return (
     <section className="grid gap-6 xl:grid-cols-[330px_1fr]">
       <div className="space-y-3">
@@ -125,17 +116,16 @@ export const Contents = ({ profile, onTracked }: ContentsProps) => {
                 <p className="font-semibold text-brand">Leitura interativa</p>
                 <h2 className="mt-1 text-2xl font-bold text-ink">{activeOva.ova_name}</h2>
                 <p className="mt-2 text-muted">
-                  O texto completo, os acordeões e os carrosséis abrem no leitor de OVAs — o tempo de leitura e o
-                  scroll continuam sendo rastreados normalmente.
+                  O texto completo, os acordeões e os carrosséis abrem aqui mesmo, no novo leitor — com Tutor IA
+                  integrado. O tempo de leitura e o scroll continuam sendo rastreados normalmente.
                 </p>
               </div>
               <button
-                onClick={() => openClassicReader(activeOva)}
-                className="flex h-11 items-center gap-2 rounded-[8px] bg-brand px-5 font-semibold text-white"
+                onClick={() => onOpenOva(activeOva)}
+                className="flex h-11 items-center gap-2 rounded-[8px] bg-brand px-5 font-semibold text-white transition hover:bg-indigo-600"
               >
                 <BookOpenText size={19} />
                 Abrir conteúdo
-                <ExternalLink size={16} />
               </button>
             </div>
           </div>

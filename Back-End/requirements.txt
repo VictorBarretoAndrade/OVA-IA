@@ -3,3 +3,6 @@ flask-cors
 peewee
 PyMySQL
 cryptography
+# IA real (opcional): SDK da Anthropic + cliente AWS Bedrock. Só é usado quando
+# EDUBOT_LLM_PROVIDER != mock; no modo mock (padrão) fica ocioso.
+anthropic[bedrock]

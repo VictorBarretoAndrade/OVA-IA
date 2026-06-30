@@ -14,6 +14,7 @@
 import json
 import uuid
 
+from . import llm
 from .tools import TOOLS_SCHEMA, execute_tool
 
 BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
@@ -160,7 +161,23 @@ class _MockAgentClient:
         return _text_envelope(text)
 
 
-_client = _MockAgentClient()
+# ---------------------------------------------------------------------------
+# Cliente REAL: o MESMO loop de tool-use, agora com o Claude na Bedrock/Anthropic.
+# Devolve o envelope da Messages API (resp.model_dump()) que o loop já consome.
+# ---------------------------------------------------------------------------
+class _RealAgentClient:
+    def invoke(self, system, messages, tools, profile):
+        resp = llm.messages_create(
+            system=system,
+            messages=messages,
+            tools=[{"name": t["name"], "description": t["description"],
+                    "input_schema": t["input_schema"]} for t in tools],
+            max_tokens=2048,
+        )
+        return resp.model_dump()
+
+
+_client = _RealAgentClient() if llm.is_real() else _MockAgentClient()
 
 
 def run_personalized_ova_agent(student, profile):

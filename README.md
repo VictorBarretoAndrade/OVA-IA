@@ -21,6 +21,10 @@ docker compose up --build
 
 # EduBot Track
 
+- **Como a plataforma funciona + passo a passo para testar tudo:** [COMO_TESTAR_PLATAFORMA.md](COMO_TESTAR_PLATAFORMA.md)
+- **Ligar a IA real (AWS Bedrock) — só configurar a key:** [IA_AWS_SETUP.md](IA_AWS_SETUP.md)
+- **Requisitos do projeto × estado atual + backlog:** [REQUISITOS_E_BACKLOG.md](REQUISITOS_E_BACKLOG.md)
+- **Plano técnico das features faltantes para o roteiro do vídeo:** [PLANO_TECNICO_ROTEIRO.md](PLANO_TECNICO_ROTEIRO.md)
 - **Lista completa de arquivos alterados + passo a passo de execução:** [ALTERACOES_EDUBOT.md](ALTERACOES_EDUBOT.md)
 - **Mapeamento do código, bugs corrigidos e justificativa da arquitetura:** [ANALISE.md](ANALISE.md)
 - **Dados captados, formato de exportação e integração com LLM:** [DADOS_E_AGENTE.md](DADOS_E_AGENTE.md)

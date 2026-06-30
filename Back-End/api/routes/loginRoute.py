@@ -54,6 +54,7 @@ def login():
                 "Message": "Logged successfully!",
                 "ids": ids,
                 "is_admin": student.is_admin,
+                "role": getattr(student, "role", "aluno") or "aluno",
                 "token": generate_token(student.student_id)
             }), 200
         # Handle errors and return the error description

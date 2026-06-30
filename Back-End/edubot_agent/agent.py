@@ -12,6 +12,7 @@
 import json
 import uuid
 
+from . import llm
 from .prompt import RULES, build_system_prompt, build_user_prompt
 
 # Modelo alvo no Bedrock (Claude Sonnet). Mantido em constante para a troca
@@ -198,6 +199,23 @@ def get_recommendation(profile):
     """
     system_prompt = build_system_prompt()
     user_prompt = build_user_prompt(profile)
+
+    # Caminho REAL (Bedrock/Anthropic) quando configurado. O system prompt já
+    # instrui o formato JSON da recomendação; o parsing é o mesmo do mock.
+    if llm.is_real():
+        try:
+            resp = llm.messages_create(
+                system=system_prompt,
+                messages=[{"role": "user", "content": user_prompt}],
+            )
+            text = "".join(b.text for b in resp.content if b.type == "text")
+            recommendation = json.loads(text)
+            recommendation["model_id"] = resp.model
+            recommendation["message_id"] = resp.id
+            recommendation["mock"] = False
+            return recommendation
+        except Exception as err:  # noqa: BLE001 — degrada para o mock
+            print(f"[edubot] LLM real falhou ({err}); usando mock.")
 
     response = _client.invoke_model(
         model_id=BEDROCK_MODEL_ID,

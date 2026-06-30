@@ -17,3 +17,6 @@ class Students(BaseModel):
     course_id = ForeignKeyField(Courses, backref="students", on_delete="cascade", on_update="cascade")
     # Indicates if the student is an administrator (coordinator) or a regular student
     is_admin = BooleanField()
+    # MELHORIA (Roteiro Cena 4): papel do usuário — 'aluno' | 'tutor' | 'admin'.
+    # Habilita o Painel do Tutor (gestão pedagógica). Default 'aluno'.
+    role = CharField(default="aluno")

@@ -121,7 +121,7 @@ export interface InterventionState {
 }
 
 export interface StudentProfile {
-  estudante: { student_id: number; nome: string; ra: string; curso: string | null };
+  estudante: { student_id: number; nome: string; ra: string; curso: string | null; role: string };
   dias_sem_acesso: number | null;
   recursos: {
     total: number;
@@ -239,6 +239,19 @@ export interface CreatedPersonalizedOVA {
 export const createPersonalizedOVA = () =>
   request<CreatedPersonalizedOVA>("/edubot/personalized-ova", { method: "POST" });
 
+// Materiais externos (artigos científicos) recomendados por competência
+export interface ExternalResource {
+  titulo: string;
+  url: string | null;
+  fonte: string;
+  ano: number | null;
+}
+
+export const getExternalResources = (competencyId: number) =>
+  request<{ competency_id: number; competencia: string; resultados: ExternalResource[] }>(
+    `/edubot/external-resources?competency_id=${competencyId}`
+  );
+
 export const listPersonalizedOVAs = () =>
   request<PersonalizedOVASummary[]>("/personalized-ova");
 
@@ -274,4 +287,63 @@ export const registerInteraction = (studentId: number, ovaId: number, action: st
   request<string>("/interaction/register", {
     method: "POST",
     body: { student_id: studentId, ova_id: ovaId, action }
+  });
+
+// ---------------------------------------------------------------------------
+// Painel do Tutor (Cena 4) — visão de turma + central de alertas
+// ---------------------------------------------------------------------------
+export interface TurmaStudent {
+  student_id: number;
+  nome: string;
+  ra: string;
+  dias_sem_acesso: number | null;
+  consumo_percentual: number;
+  taxa_erro: number | null;
+  alertas_abertos: number;
+}
+
+export interface TutorAlert {
+  alert_id: number;
+  student_id: number;
+  aluno: string;
+  type: string;
+  message: string;
+  severity: string;
+  created_at: string;
+  read: boolean;
+}
+
+export const getTurma = () => request<{ total: number; alunos: TurmaStudent[] }>("/tutor/turma");
+export const getTutorAlerts = () => request<{ alertas: TutorAlert[] }>("/tutor/alerts");
+export const evaluateTurma = () =>
+  request<{ alertas_criados: number }>("/tutor/evaluate", { method: "POST" });
+
+// ---------------------------------------------------------------------------
+// Tutor IA por OVA — chat de tutoria restrito ao conteúdo do OVA consumido
+// ---------------------------------------------------------------------------
+export interface TutorMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface TutorSource {
+  secao: string;
+  trecho: string;
+}
+
+export interface TutorReply {
+  reply: string;
+  ova_id: number;
+  ova_name: string;
+  model_id: string;
+  mock: boolean;
+  sources: TutorSource[];
+}
+
+// Envia a pergunta + o histórico + o material (context) do OVA. O backend
+// responde como tutor preso ao conteúdo (ver edubot_agent/tutor.py).
+export const tutorChat = (ovaId: number, context: string, messages: TutorMessage[]) =>
+  request<TutorReply>("/edubot/tutor-chat", {
+    method: "POST",
+    body: { ova_id: ovaId, context, messages }
   });

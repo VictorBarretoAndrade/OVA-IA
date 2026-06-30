@@ -7,6 +7,13 @@ __pycache__/
 dev_ova.db
 Back-End/dev_ova.db
 
+# Ambiente virtual Python local (Windows)
+.venv/
+
+# Variáveis de ambiente locais do backend (use os .env.example como modelo)
+.env
+Back-End/.env
+
 # Byte-compiled / optimized / DLL files
 *.pyc
 *.pyo

@@ -20,6 +20,7 @@ from ova_progress import OVAProgress
 from attempts import Attempts
 from interventions import Interventions
 from personalized_ova import PersonalizedOVA, PersonalizedOVAItem
+from alerts import Alerts
 
 
 def init_db():
@@ -27,7 +28,7 @@ def init_db():
     models = [
         Courses, Subjects, Offerings, Competencies, OVAs, Students, Questions,
         Answers, Interactions, Resources, ResourceProgress, OVAProgress,
-        Attempts, Interventions, PersonalizedOVA, PersonalizedOVAItem
+        Attempts, Interventions, PersonalizedOVA, PersonalizedOVAItem, Alerts
     ]
     db.create_tables(models, safe=True)
 

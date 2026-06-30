@@ -3,7 +3,21 @@ INTEGRAÇÃO — Gráficos gerados a partir do perfil real (GET /student/me):
 competências (acertos/total por competência) e consumo por tipo de recurso
 (texto/vídeo/podcast/quiz/atividade). Mantém o Recharts do protótipo.
 */
-import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Legend,
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 import { StudentProfile } from "../services/api";
 
 interface EvolutionProps {
@@ -36,6 +50,29 @@ export const Evolution = ({ profile }: EvolutionProps) => {
       <p className="mt-2 text-muted">Gráficos gerados a partir dos dados rastreados no backend.</p>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
+        {/* Teia de competências (gráfico radar) — visão do domínio do aluno */}
+        <div className="rounded-[8px] border border-line bg-white p-6 shadow-sm xl:col-span-2">
+          <h2 className="text-xl font-bold text-ink">Teia de competências</h2>
+          <p className="mt-1 text-sm text-muted">% de acertos por competência (quanto mais cheia a teia, melhor o domínio).</p>
+          <div className="mt-5 h-96">
+            <ResponsiveContainer>
+              <RadarChart data={competencyData} outerRadius="72%">
+                <PolarGrid />
+                <PolarAngleAxis dataKey="nome" tick={{ fontSize: 12 }} />
+                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
+                <Tooltip
+                  formatter={(value: number) => [`${value}%`, "acertos"]}
+                  labelFormatter={(label: string) => {
+                    const item = competencyData.find((entry) => entry.nome === label);
+                    return item ? `${item.completo} (${item.status})` : label;
+                  }}
+                />
+                <Radar name="Acertos" dataKey="score" stroke="#604fd8" fill="#604fd8" fillOpacity={0.35} />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
         <div className="rounded-[8px] border border-line bg-white p-6 shadow-sm">
           <h2 className="text-xl font-bold text-ink">Leitura por OVA</h2>
           <div className="mt-5 h-72">

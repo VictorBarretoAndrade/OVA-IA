@@ -12,15 +12,17 @@ classificado por competência). Esta tela:
 O consumo é persistido em resource_progress / attempts, realimentando o perfil
 e o próprio EduBot.
 */
-import { ArrowLeft, ClipboardCheck, FileText, LoaderCircle, Sparkles, Stars } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, ExternalLink, FileText, GraduationCap, LoaderCircle, Sparkles, Stars } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  ExternalResource,
   OvaResource,
   PersonalizedOVAContent,
   PersonalizedOVASummary,
   StudentProfile,
   answerQuestion,
   createPersonalizedOVA,
+  getExternalResources,
   getPersonalizedOVA,
   getSession,
   listPersonalizedOVAs,
@@ -188,6 +190,8 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
           </div>
         </div>
 
+        {active.competencia && <ExternalSources competencyId={active.competencia.competency_id} />}
+
         {active.questoes.length > 0 && (
           <ReforcoQuiz questions={active.questoes} onTracked={onTracked} />
         )}
@@ -249,6 +253,62 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
         )}
       </div>
     </section>
+  );
+};
+
+// Materiais externos (artigos científicos) por competência — Crossref (Cena 4)
+const ExternalSources = ({ competencyId }: { competencyId: number }) => {
+  const [items, setItems] = useState<ExternalResource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    getExternalResources(competencyId)
+      .then((data) => active && setItems(data.resultados))
+      .catch(() => active && setItems([]))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [competencyId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-muted">
+        <LoaderCircle className="animate-spin" size={16} /> Buscando materiais externos...
+      </div>
+    );
+  }
+  if (items.length === 0) return null;
+
+  return (
+    <div>
+      <h2 className="mb-1 flex items-center gap-2 text-xl font-bold text-ink">
+        <GraduationCap size={20} className="text-brand" /> Materiais externos
+      </h2>
+      <p className="mb-3 text-sm text-muted">Artigos científicos relacionados a este assunto (fonte: Crossref).</p>
+      <div className="space-y-3">
+        {items.map((item, index) => (
+          <a
+            key={index}
+            href={item.url ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start justify-between gap-4 rounded-[8px] border border-line bg-white p-5 transition hover:border-brand"
+          >
+            <span>
+              <span className="font-semibold text-ink">{item.titulo}</span>
+              <span className="mt-1 block text-sm text-muted">
+                {item.fonte}
+                {item.ano ? ` · ${item.ano}` : ""}
+              </span>
+            </span>
+            <ExternalLink size={18} className="mt-1 shrink-0 text-brand" />
+          </a>
+        ))}
+      </div>
+    </div>
   );
 };
 

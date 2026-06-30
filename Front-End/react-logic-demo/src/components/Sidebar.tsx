@@ -1,4 +1,4 @@
-import { Award, BarChart3, Bell, BookOpen, CalendarDays, GraduationCap, Grid2X2, LogOut, MessageCircle, Search, Stars, TrendingUp } from "lucide-react";
+import { Award, BarChart3, Bell, BookOpen, CalendarDays, GraduationCap, Grid2X2, LogOut, MessageCircle, Search, Stars, TrendingUp, Users } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StudentProfile } from "../services/api";
 
@@ -6,6 +6,7 @@ interface SidebarProps {
   activeView: string;
   onChangeView: (view: string) => void;
   studentName: string;
+  role: string;
   onLogout: () => void;
 }
 
@@ -19,7 +20,12 @@ const navItems = [
   { id: "report", label: "Tutor IA", icon: MessageCircle }
 ];
 
-export const Sidebar = ({ activeView, onChangeView, studentName, onLogout }: SidebarProps) => (
+// Item exclusivo de tutor/admin (gestão pedagógica)
+const tutorItem = { id: "tutor", label: "Turma", icon: Users };
+
+export const Sidebar = ({ activeView, onChangeView, studentName, role, onLogout }: SidebarProps) => {
+  const items = role === "tutor" || role === "admin" ? [...navItems, tutorItem] : navItems;
+  return (
   <aside className="hidden min-h-screen w-[340px] shrink-0 border-r border-line bg-white/70 lg:block">
     <div className="flex h-20 items-center gap-3 border-b border-line px-5">
       <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white shadow-soft">
@@ -32,7 +38,7 @@ export const Sidebar = ({ activeView, onChangeView, studentName, onLogout }: Sid
     </div>
 
     <nav className="space-y-2 px-3 py-8">
-      {navItems.map((item) => {
+      {items.map((item) => {
         const Icon = item.icon;
         const active = item.id === activeView;
         return (
@@ -63,7 +69,8 @@ export const Sidebar = ({ activeView, onChangeView, studentName, onLogout }: Sid
       </button>
     </div>
   </aside>
-);
+  );
+};
 
 interface SearchResult {
   label: string;

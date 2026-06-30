@@ -247,7 +247,9 @@ def build_student_profile(student):
             "student_id": student.student_id,
             "nome": student.student_name,
             "ra": student.ra,
-            "curso": course.course_name if course else None
+            "curso": course.course_name if course else None,
+            # MELHORIA (Cena 4): papel do usuário, para o frontend liberar o painel
+            "role": getattr(student, "role", "aluno") or "aluno"
         },
         "dias_sem_acesso": _days_without_access(student),
         "recursos": {

@@ -16,17 +16,21 @@ sys.path.append(os.getcwd())  # Back-End/ no path para importar edubot_agent
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data/models')))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data')))
 
-from flask import Blueprint, g
+from flask import Blueprint, request, g
 from flask_cors import cross_origin
 from peewee import PeeweeException
 import json
 import datetime
 
 from interventions import Interventions
+from ovas import OVAs
+from competencies import Competencies
 
 from auth import require_auth
 from services.student_context import build_student_profile
 from edubot_agent import get_recommendation
+from edubot_agent.tutor import tutor_reply
+from edubot_agent.external_sources import search_external
 
 app_edubot = Blueprint("edubot", __name__)
 
@@ -63,3 +67,69 @@ def edubot_recommendation():
         }, default=str), 200
     except PeeweeException as err:
         return json.dumps({"Error": f"{err}"}), 501
+
+
+# MELHORIA (Tutor IA por OVA) — chat de tutoria restrito ao conteúdo do OVA.
+#
+#   POST /edubot/tutor-chat  body: [{ova_id, context, messages}]
+#
+# O tutor responde com base SOMENTE no material do OVA (grounding). O título é
+# resolvido do banco (validando o ova_id); o material (context) é o texto do
+# conteúdo que o aluno consumiu, enviado pelo frontend. O "cérebro" está mockado
+# (ver edubot_agent/tutor.py) — o contrato já é o da LLM real.
+@app_edubot.route("/edubot/tutor-chat", methods=["POST"])
+@cross_origin()
+@require_auth
+def edubot_tutor_chat():
+    try:
+        data = request.get_json()[0]
+    except (TypeError, IndexError, KeyError):
+        return json.dumps({"Error": "Invalid payload"}), 400
+
+    ova_id = data.get("ova_id")
+    ova = OVAs.get_or_none(OVAs.ova_id == ova_id) if ova_id is not None else None
+    if ova is None:
+        return json.dumps({"Error": "Unknown ova_id"}), 400
+
+    # Aceita apenas papéis válidos e mensagens não vazias (sanitização básica).
+    messages = []
+    for m in (data.get("messages") or []):
+        role = m.get("role")
+        content = (m.get("content") or "").strip()
+        if role in ("user", "assistant") and content:
+            messages.append({"role": role, "content": content})
+    if not messages or messages[-1]["role"] != "user":
+        return json.dumps({"Error": "A última mensagem deve ser do aluno (user)."}), 400
+
+    result = tutor_reply(
+        titulo=ova.ova_name,
+        context=data.get("context") or "",
+        messages=messages,
+    )
+    return json.dumps({
+        "reply": result["reply"],
+        "ova_id": ova_id,
+        "ova_name": ova.ova_name,
+        "model_id": result["model_id"],
+        "mock": result["mock"],
+        "sources": result.get("sources", []),
+    }, default=str), 200
+
+
+# MELHORIA (Roteiro Cena 4) — materiais externos (bases científicas) por
+# competência. Cruza a lacuna de competência com artigos de fora da plataforma.
+@app_edubot.route("/edubot/external-resources", methods=["GET"])
+@cross_origin()
+@require_auth
+def edubot_external_resources():
+    competency_id = request.args.get("competency_id", type=int)
+    comp = Competencies.get_or_none(Competencies.competency_id == competency_id) if competency_id else None
+    if comp is None:
+        return json.dumps({"Error": "Unknown competency_id"}), 400
+
+    resultados = search_external(comp.competency_description, limit=3)
+    return json.dumps({
+        "competency_id": competency_id,
+        "competencia": comp.competency_description,
+        "resultados": resultados,
+    }, default=str), 200
