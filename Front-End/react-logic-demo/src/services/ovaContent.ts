@@ -12,6 +12,7 @@ O mesmo texto extraído (ovaContextText) é enviado ao Tutor IA como contexto, d
 modo que o tutor responde estritamente sobre o conteúdo que o aluno consumiu.
 */
 import { CLASSIC_BASE_URL } from "./config";
+import { Lang } from "../i18n";
 
 export interface CarouselItem {
   title?: string;
@@ -139,11 +140,22 @@ const parseDocument = (html: string, fallbackTitle: string): OvaContent => {
   return { title: fallbackTitle, heroLabel, intro, sections };
 };
 
-export async function fetchOvaContent(link: string, fallbackTitle: string): Promise<OvaContent> {
-  const response = await fetch(`${CLASSIC_BASE_URL}/html/ovas/${link}`);
+export async function fetchOvaContent(link: string, fallbackTitle: string, lang: Lang = "pt"): Promise<OvaContent> {
+  const base = `${CLASSIC_BASE_URL}/html/ovas/`;
+  // No modo inglês, tenta a variante "<arquivo>.en.html"; se ela não existir,
+  // cai no HTML original (PT). Assim traduzimos só os OVAs que têm versão EN.
+  if (lang === "en") {
+    const enLink = link.replace(/\.html$/i, ".en.html");
+    try {
+      const enResp = await fetch(`${base}${enLink}`);
+      if (enResp.ok) return parseDocument(await enResp.text(), fallbackTitle);
+    } catch {
+      /* rede/404 — usa o original abaixo */
+    }
+  }
+  const response = await fetch(`${base}${link}`);
   if (!response.ok) throw new Error(`Não foi possível carregar o conteúdo do OVA (${response.status}).`);
-  const html = await response.text();
-  return parseDocument(html, fallbackTitle);
+  return parseDocument(await response.text(), fallbackTitle);
 }
 
 // Serializa o conteúdo do OVA no formato que o Tutor IA espera como contexto:

@@ -1,167 +1,90 @@
-# Guia de gravação — passo a passo (onde clicar) por cena do roteiro
+# Guia de gravação — Ecossistema EduBot (passo a passo por cena)
 
-Roteiro de cliques para gravar o vídeo de 8 minutos na plataforma **rodando**.
-Cada cena traz o que dizer (resumo), **onde clicar** e o que aparece na tela.
+Roteiro de cliques para gravar o vídeo (novo roteiro: *"O Ecossistema de
+Aprendizagem Inteligente e Agêntico — EduBot"*, 6 cenas / ~8 min). Cada cena traz
+o que dizer, **onde clicar** e o que aparece.
 
-## Antes de gravar (preparação)
-
-1. Suba a plataforma: na pasta `OVA-IA`, rode `docker compose up -d` e espere
-   o MySQL (uns segundos). Confirme em `docker compose ps` (3 serviços `running`).
-2. Abra **http://localhost:8010/app/** e dê **Ctrl+F5** (evita cache).
-3. Credenciais:
-   - **Aluno:** RA `1` / senha `1`
-   - **Tutor:** RA `2` / senha `2`
-4. (Opcional) Para a IA do tutor responder com o Claude **real** na gravação,
-   configure a key da AWS antes — ver [IA_AWS_SETUP.md](IA_AWS_SETUP.md). Sem
-   isso, o tutor responde em **modo mock** (determinístico, serve para a demo).
-
-> ⚠️ **Ainda não implementado:** o **avatar animado com voz (TTS)** das Cenas 3 e
-> 5. Onde o roteiro pede o avatar, use **narração em voz over** sobre as telas de
-> feedback/gráficos (indicado abaixo em cada ponto).
+## Antes de gravar
+1. Suba a plataforma: `docker compose up -d` (na pasta `OVA-IA`); aguarde o MySQL.
+2. Abra **http://localhost:8010/app/** e dê **Ctrl+F5**.
+3. Credenciais: **Aluno** RA `1` / `1` · **Tutor** RA `2` / `2`.
+4. A conta do **Eduardo (RA 1)** já vem com dados de demo: **72 min de leitura**,
+   **26% de recursos consumidos**, uma competência **desenvolvida** e uma
+   **lacuna** detectada (para o reforço/alerta).
+5. **Idioma:** o botão **PT/EN** fica no topo (Topbar). A interface e os textos de
+   Competências/Conteúdos/Atividades trocam de idioma.
+6. **Voz do EduBot:** use o **Microsoft Edge** para as vozes neurais mais naturais.
+7. **IA real (opcional):** se a key da AWS Bedrock estiver válida no `.env`, o botão
+   "Versão do EduBot (IA)" gera o texto pelo Claude; senão usa o texto local.
 
 ---
 
-## CENA 1 — Introdução (0:00–0:45)
+## CENA 1 — O Desafio e a Visão (0:00–1:00)
+Narração sobre personalização em escala; surge a interface roxa/branca.
+- **Tela de login** (já mostra o **logo do EduBot** e a marca).
+- Fale da **interface bilíngue**: **clique no botão PT/EN** no topo para mostrar a
+  troca de idioma (pode fazer login já em inglês para reforçar o "bilíngue").
+- Faça login: RA `1` / `1` → abre o **Dashboard**.
 
-**Narração** (tom empático): o desafio de personalizar o ensino em massa.
+## CENA 2 — O Motor da Rastreabilidade (1:00–2:30)
+Narração sobre rastreabilidade total; cada interação é um sensor.
+- No **Dashboard**, aponte os indicadores do Eduardo: **"72 min"** (Tempo de
+  leitura), **"26%"** (Recursos consumidos), acerto nos quizzes e o donut de
+  **Progresso**.
+- **Clique em "Conteúdos"** → selecione **"Computação Quântica"** → **"Abrir conteúdo"**.
+- No leitor: **role a página** (carrossel de qubits, acordeões), **dê play no vídeo**.
+  Narre que tempo de leitura, vídeo, podcast e quiz viram **dados estruturados**.
 
-**Tela:** imagens de abertura / vinheta (edição de vídeo) → termine na **tela de
-login** da plataforma.
+## CENA 3 — A IA Agêntica em Ação (2:30–4:00)
+Chat contextual + voz do EduBot no "My Performance".
+- Com o OVA aberto, use o **chat lateral** (Assistente / "Pergunte à IA"):
+  digite uma pergunta sobre o conteúdo → a resposta vem **contextual, com o chip
+  "📌 Fonte"** citando a seção do material.
+- **Clique em "Meu Desempenho"** (em inglês, *"My Performance"*).
+- No card **"EduBot fala com você"**: **clique em "Ouvir o EduBot" / "Listen to
+  EduBot"** → a **voz sintetizada** lê o feedback e a **boca do avatar anima**.
+  (Se a key da Bedrock estiver ativa, clique antes em **"Versão do EduBot (IA)"**
+  para o texto gerado pelo Claude via **AWS Bedrock**.)
+- Mostre também a **Teia de competências** (radar) logo abaixo.
 
-- **Clique:** campo RA → digite `1`; campo senha → digite `1`.
-- **Clique:** botão **Entrar**.
-- Aparece o **Dashboard** do aluno.
+## CENA 4 — Ludicidade e Intervenção Proativa (4:00–5:30)
+Avatar amigável + reforço ("Reinforcement") + alerta ao tutor.
+- **Clique em "Reforço" / "Reinforcement"** → **"Gerar OVA de reforço"**: o EduBot
+  diagnostica a **lacuna** (competência fraca) e monta a trilha; mostre o selo
+  **"Foco: …"**, os recursos e o bloco **"Materiais externos"** (artigos Crossref).
+- Troque para a conta de **tutor** (Sair → RA `2` / `2`) → aba **"Turma" / "Class"**.
+- **Clique em "Analisar turma"** → o EduBot roda as **regras de decisão** e o
+  aviso do aluno em risco aparece na **Central de alertas** ("alerta o tutor").
 
----
+## CENA 5 — Excelência Técnica e Viabilidade (5:30–7:00)
+Narração sobre a stack (React + Node.js + AWS Bedrock), TRL 4, mercado.
+- **Tela:** mostre o **VS Code** com a estrutura de pastas e o **GitHub** do projeto
+  (branch `feature/frontend-melhorias-conteudo`). Opcional: o diagrama de
+  arquitetura. Use como pano de fundo da narração.
 
-## CENA 2 — App em ação: rastreamento + IA embarcada (0:45–3:00)
-
-**Narração:** ambiente totalmente rastreável; conteúdo em módulos/aulas; IA
-embarcada dialoga com o material.
-
-### a) Navegar a disciplina
-- Na **barra lateral**, **clique em "Conteúdos"**.
-- Na lista à esquerda, **clique no card "Fundamentos de Computação na Nuvem"**.
-- **Clique no botão "Abrir conteúdo"** (canto direito do card).
-- Abre o **leitor de OVA nativo**. **Role a página** mostrando:
-  - o **hero** azul com a introdução,
-  - a seção **"Modelos de Serviço"** → **clique nas setas/bolinhas do carrossel**
-    (IaaS → PaaS → SaaS),
-  - a seção **"Modelos de Implantação"** → **clique nos itens do acordeão**
-    (Nuvem Pública / Privada / Híbrida) para expandir,
-  - repare na **barra de progresso de leitura** no topo subindo conforme rola.
-
-### b) Mídias rastreadas (mostrar rapidamente)
-- Continue rolando até **"Recursos adicionais"**: dá **play no vídeo** alguns
-  segundos (a barra "% assistido" registra o consumo).
-
-### c) IA generativa embarcada (ponto-chave da cena)
-- O painel **"Assistente do conteúdo"** já está aberto à direita (se estiver
-  recolhido, **clique na aba "Pergunte à IA"** na borda direita, ou no botão
-  **"Tirar dúvidas com a IA"** no topo).
-- **Clique no campo de texto** do chat e **digite uma pergunta sobre o conteúdo**,
-  ex.: *"o que é IaaS?"* → **clique no botão enviar (avião)**.
-- A resposta aparece **e mostra o chip de fonte** (📌 com o nome da seção do
-  material) — destaque isso: *"a IA responde com referência direta ao material"*.
-- Faça uma 2ª pergunta de uma das **sugestões** exibidas, se quiser.
-
-> Narração de fechamento da cena: cada clique/leitura/mídia/pergunta vira dado
-> para o perfil de aprendizagem.
-
----
-
-## CENA 3 — EduBot, gráficos e feedback (3:00–5:00)
-
-**Narração:** o EduBot gera um extrato do aprendizado; mensura competências.
-
-### a) Painel de desempenho / competências
-- **Clique em "Meu Desempenho"** na barra lateral.
-- Mostre a **"Teia de competências"** (gráfico **radar**) — *"o quanto cada
-  competência foi desenvolvida"*.
-- Role para os gráficos **"Leitura por OVA"** e **"Consumo por tipo de recurso"**.
-
-### b) Feedback do EduBot (texto)
-- **Clique em "Tutor IA"** na barra lateral → aparece a **recomendação do EduBot**
-  baseada no desempenho (ex.: revisar com explicação alternativa após erro no quiz).
-- (Opcional) No topo, **clique no sino 🔔 "Avisos do EduBot"** para mostrar o
-  histórico de intervenções.
-
-> 🎬 **Avatar/voz (pendente):** o roteiro pede o avatar falando *"Olá Ana! ...errou
-> o quiz, recomendo..."*. Como ainda não há avatar, **narre esse feedback em voz
-> over** sobre a tela da recomendação/gráficos. (Quando o avatar for implementado,
-> ele entra exatamente aqui.)
-
----
-
-## CENA 4 — Recomendação inteligente + intervenções (5:00–6:30)
-
-**Narração:** quando a competência não é desenvolvida, o EduBot recomenda
-conteúdo (interno e externo) e alerta o tutor.
-
-### a) OVA de reforço + materiais externos (como aluno)
-- **Clique em "Reforço"** na barra lateral.
-- **Clique no botão "Gerar OVA de reforço"** → o agente diagnostica o assunto
-  fraco e monta a trilha.
-- Na OVA aberta, mostre:
-  - o selo **"Foco: <competência>"** e a mensagem do EduBot,
-  - os **recursos de reforço** (vídeo/texto),
-  - o bloco **"Materiais externos"** → **clique em um artigo** (abre um paper
-    científico da Crossref em nova aba) — *"explorar bases de dados científicas"*.
-
-### b) Regras + alerta ao tutor (troque para a conta de tutor)
-- **Clique em "Sair"** (canto inferior da barra lateral).
-- Faça login como **tutor**: RA `2` / senha `2`.
-- **Clique em "Turma"** na barra lateral (aba que só o tutor vê).
-- Mostre os **KPIs** (Alunos ativos / Alertas abertos / Em risco) e a **tabela**
-  da turma (consumo, % de erro, dias sem acesso).
-- **Clique no botão "Analisar turma"** → o EduBot roda as regras
-  (7 dias sem acesso / <40% de consumo / >50% de erro) e **gera os alertas**.
-- Aponte para a **"Central de alertas"** à direita: o aviso do aluno em risco
-  aparece — *"o EduBot envia o plano de retomada e alerta o tutor"*.
-
----
-
-## CENA 5 — Inovação e visão futura (6:30–7:30)
-
-**Narração:** arquitetura de dados; IA agêntica; visão de futuro com avatar de
-especialista.
-
-- **Tela:** volte ao **Dashboard** / **Meu Desempenho** e mostre os dados/gráficos
-  fluindo (use como pano de fundo da narração sobre "arquitetura de dados").
-- A parte do **avatar de especialista (ex.: Bill Gates) com voz clonada** é
-  **visão de futuro** — **narre** essa parte (não há tela ainda). Opcional: use
-  uma arte/conceito do avatar como ilustração na edição.
-
----
-
-## CENA 6 — Chamada para ação (7:30–8:00)
-
-**Narração** (tom inspirador): educação 100% personalizada, baseada em dados.
-
+## CENA 6 — O Futuro é Agora (7:00–8:00)
+Celebração; "Agentic AI for Education"; QR Code do GitHub.
 - **Clique em "Dashboard"** para fechar mostrando a interface principal.
-- Encerre com a vinheta **"Agentic AI for Education"** (edição de vídeo).
+- Encerre com a vinheta **"Agentic AI for Education"** + QR Code (edição de vídeo).
 
 ---
 
-## Resumo do percurso de cliques
-
+## Percurso de cliques (resumo)
 ```
-Login (RA 1/1)
- └─ Conteúdos → "Fundamentos de Computação na Nuvem" → Abrir conteúdo
-      → rolar (carrossel/acordeão) → play no vídeo
-      → Assistente do conteúdo: perguntar → ver chip "Fonte"
- └─ Meu Desempenho → Teia de competências (radar)
- └─ Tutor IA → recomendação do EduBot   [narrar o "avatar"]
- └─ Reforço → Gerar OVA de reforço → Materiais externos (clicar num artigo)
- └─ Sair → Login (RA 2/2 — tutor)
- └─ Turma → Analisar turma → Central de alertas
- └─ Dashboard (encerramento)
+Login (PT/EN) → RA 1/1
+ └ Dashboard: 72 min · 26% · Progresso
+ └ Conteúdos → Computação Quântica → Abrir conteúdo → rolar + vídeo
+     └ Chat lateral: perguntar → chip "Fonte"
+ └ Meu Desempenho → Ouvir o EduBot (voz + boca) [+ Versão IA]
+ └ Reforço → Gerar OVA de reforço → Materiais externos
+ └ Sair → RA 2/2 (tutor) → Turma → Analisar turma → Central de alertas
+ └ (Cena 5: VS Code + GitHub)  →  Dashboard (encerramento)
 ```
 
-## Pendências que viram narração (não há tela ainda)
-- **Avatar animado + voz (TTS)** — Cenas 3 e 5 → narrar em voz over.
-- **Voz de especialista / persona (Bill Gates)** — Cena 5 → narrar como futuro.
-- **IA real (Bedrock)** — opcional: ligar a key antes para o tutor responder com
-  o Claude de verdade (senão, mock).
+## Observações
+- **Voz realmente natural** (nível ElevenLabs/Polly) exige uma credencial de
+  **voz** — a key da Bedrock cobre só o **texto** (IA). No navegador, o Edge dá o
+  melhor resultado.
+- Se a key da Bedrock expirar, o botão de IA usa o **texto local** (sem erro).
 
-*Guia de gravação — última atualização: 2026-06-30.*
+*Guia de gravação — última atualização: 2026-07-01.*

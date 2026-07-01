@@ -9,6 +9,7 @@ import type { LucideIcon } from "lucide-react";
 import { RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
 import { StudentProfile } from "../services/api";
 import { useT } from "../i18n";
+import { useContentT } from "../services/contentDict";
 
 interface DashboardProps {
   profile: StudentProfile;
@@ -33,6 +34,7 @@ const statusColor: Record<string, string> = {
 
 export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
   const t = useT();
+  const ct = useContentT();
   const progresso = profile.recursos.percentual_consumido;
   const radialData = [{ name: "progresso", value: progresso, fill: "#604fd8" }];
   const totalReadMinutes = Math.round(profile.ovas.reduce((sum, ova) => sum + (ova.read_time || 0), 0) / 60);
@@ -115,7 +117,7 @@ export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
               return (
                 <div key={item.competency_id}>
                   <div className="mb-2 flex justify-between gap-3 text-sm">
-                    <span className="font-semibold text-ink">{item.nome}</span>
+                    <span className="font-semibold text-ink">{ct(item.nome)}</span>
                     <span className="shrink-0 text-muted">{item.status}</span>
                   </div>
                   <div className="h-2 rounded-full bg-slate-100">
@@ -160,7 +162,7 @@ export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
         {profile.ovas.map((ova) => (
           <div key={ova.ova_id} className="rounded-[8px] border border-line bg-white p-5">
             <div className="text-sm font-semibold text-brand">{ova.completed ? t("Concluído", "Completed") : t("Em andamento", "In progress")}</div>
-            <div className="mt-2 font-bold text-ink">{ova.ova_name}</div>
+            <div className="mt-2 font-bold text-ink">{ct(ova.ova_name)}</div>
             <div className="mt-2 text-sm text-muted">
               {ova.perc_scrolled || 0}% {t("lido", "read")} · {ova.recursos.filter((r) => r.consumido).length}/{ova.recursos.length} {t("recursos", "resources")}
             </div>

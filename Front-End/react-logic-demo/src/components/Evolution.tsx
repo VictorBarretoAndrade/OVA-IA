@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import { StudentProfile } from "../services/api";
 import { useT } from "../i18n";
+import { useContentT } from "../services/contentDict";
 import { PerformanceCoach } from "./PerformanceCoach";
 
 interface EvolutionProps {
@@ -28,6 +29,7 @@ interface EvolutionProps {
 
 export const Evolution = ({ profile }: EvolutionProps) => {
   const t = useT();
+  const ct = useContentT();
   // Rótulos das séries (aparecem na legenda dos gráficos)
   const kRead = t("percentual lido", "percent read");
   const kMin = t("minutos de leitura", "reading minutes");
@@ -36,7 +38,7 @@ export const Evolution = ({ profile }: EvolutionProps) => {
 
   const competencyData = profile.competencias.map((item, index) => ({
     nome: `Comp. ${index + 1}`,
-    completo: item.nome,
+    completo: ct(item.nome),
     score: item.total_questoes ? Math.round((100 * item.acertos) / item.total_questoes) : 0,
     status: item.status
   }));
@@ -47,11 +49,14 @@ export const Evolution = ({ profile }: EvolutionProps) => {
     [kTotal]: stats.total
   }));
 
-  const ovaData = profile.ovas.map((ova) => ({
-    nome: ova.ova_name.length > 18 ? `${ova.ova_name.slice(0, 18)}…` : ova.ova_name,
-    [kRead]: ova.perc_scrolled || 0,
-    [kMin]: Math.round((ova.read_time || 0) / 60)
-  }));
+  const ovaData = profile.ovas.map((ova) => {
+    const nome = ct(ova.ova_name);
+    return {
+      nome: nome.length > 18 ? `${nome.slice(0, 18)}…` : nome,
+      [kRead]: ova.perc_scrolled || 0,
+      [kMin]: Math.round((ova.read_time || 0) / 60)
+    };
+  });
 
   return (
     <section>

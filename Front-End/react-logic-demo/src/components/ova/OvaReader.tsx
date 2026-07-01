@@ -25,7 +25,8 @@ import { OvaContent, fetchOvaContent, ovaContextText } from "../../services/ovaC
 import { AudioPlayer } from "../players/AudioPlayer";
 import { MediaProgress, VideoPlayer } from "../players/VideoPlayer";
 import { useToast } from "../ui/Toast";
-import { useT } from "../../i18n";
+import { useLanguage, useT } from "../../i18n";
+import { useContentT } from "../../services/contentDict";
 import { Accordion } from "./Accordion";
 import { Carousel } from "./Carousel";
 import { OvaQuiz } from "./OvaQuiz";
@@ -59,13 +60,15 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
   const [progress, setProgress] = useState(0);
   const toast = useToast();
   const t = useT();
+  const ct = useContentT();
+  const { lang } = useLanguage();
 
   // Carrega o conteúdo do OVA (HTML -> modelo estruturado) e os recursos de mídia
   useEffect(() => {
     let active = true;
     setContent(null);
     setError(false);
-    fetchOvaContent(ova.link, ova.ova_name)
+    fetchOvaContent(ova.link, ct(ova.ova_name), lang)
       .then((data) => active && setContent(data))
       .catch(() => active && setError(true));
     getOVAResources(ova.ova_id)
@@ -74,7 +77,8 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
     return () => {
       active = false;
     };
-  }, [ova.ova_id, ova.link, ova.ova_name]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ova.ova_id, ova.link, ova.ova_name, lang]);
 
   // Rastreio de leitura (espelha ova.js): acumula tempo e o scroll máximo e
   // persiste periodicamente em /progress/ova. No fim (voltar/desmontar) faz um
@@ -172,7 +176,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
               <p className="flex items-center gap-2 font-semibold text-brand">
                 <BookOpenText size={18} /> {t("Leitura interativa", "Interactive reading")}
               </p>
-              <h1 className="text-2xl font-bold text-ink">{ova.ova_name}</h1>
+              <h1 className="text-2xl font-bold text-ink">{ct(ova.ova_name)}</h1>
             </div>
           </div>
           <button
@@ -277,7 +281,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
                       key={resource.resource_id}
                       url={resource.resource_url}
                       mediaType={resource.media_type}
-                      title={resource.resource_title}
+                      title={ct(resource.resource_title)}
                       initialPerc={resource.perc_consumed}
                       onProgress={trackMedia(resource)}
                     />
@@ -286,7 +290,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
                     <AudioPlayer
                       key={resource.resource_id}
                       url={resource.resource_url}
-                      title={resource.resource_title}
+                      title={ct(resource.resource_title)}
                       durationSeconds={resource.duration_seconds}
                       initialSeconds={resource.seconds_consumed}
                       onProgress={trackMedia(resource)}
@@ -300,7 +304,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
                       <div className="flex items-center gap-3">
                         <ListChecks className="text-brand" size={24} />
                         <div>
-                          <div className="font-bold text-ink">{resource.resource_title}</div>
+                          <div className="font-bold text-ink">{ct(resource.resource_title)}</div>
                           <div className="text-sm text-muted">{t("Atividade prática", "Practical activity")}</div>
                         </div>
                       </div>

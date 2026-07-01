@@ -104,13 +104,17 @@ values
 (33, 4, "atividade", "Atividade prática: suba uma VM gratuita na AWS/Azure", NULL, NULL, NULL, NULL),
 -- Banco de remediação por competência (usado pelo agente de OVA de reforço)
 (34, 4, "video", "Reforço: IaaS, PaaS e SaaS em 5 minutos",          "https://www.youtube.com/watch?v=N0SYCyS2xZA", "youtube", NULL, 7),
-(35, 4, "texto", "Reforço (texto): Modelos de serviço de nuvem",     "https://azure.microsoft.com/pt-br/resources/cloud-computing-dictionary/what-is-iaas/", "link", NULL, 7),
+(35, 4, "texto", "Reforço (texto): O que é computação em nuvem (AWS)", "https://aws.amazon.com/pt/what-is-cloud-computing/", "link", NULL, 7),
 (36, 4, "video", "Reforço: Nuvem pública, privada e híbrida",        "https://www.youtube.com/watch?v=ymZo-ZwXFw8", "youtube", NULL, 8),
-(37, 4, "texto", "Reforço (texto): Modelos de implantação na nuvem", "https://learn.microsoft.com/pt-br/training/modules/describe-cloud-compute/", "link", NULL, 8),
+(37, 4, "texto", "Reforço (texto): Microsoft Azure (portal)", "https://azure.microsoft.com/pt-br", "link", NULL, 8),
 (38, 4, "video", "Reforço: Segurança e responsabilidade compartilhada", "https://www.youtube.com/watch?v=97l0Ahu2efE", "youtube", NULL, 9),
-(39, 4, "texto", "Reforço (texto): Modelo de responsabilidade compartilhada", "https://aws.amazon.com/pt/compliance/shared-responsibility-model/", "link", NULL, 9);
+(39, 4, "texto", "Reforço (texto): Dicionário — o que é computação em nuvem (Azure)", "https://azure-microsoft-com.translate.goog/en-us/resources/cloud-computing-dictionary/what-is-cloud-computing?_x_tr_sl=en&_x_tr_tl=pt&_x_tr_hl=pt&_x_tr_pto=tc", "link", NULL, 9);
 
 -- MELHORIA (Roteiro Cena 4): papéis. Gabriel (RA 2) vira TUTOR; Sanval (RA 4),
 -- que já era admin, recebe o papel 'admin'. Os demais ficam 'aluno' (default).
 update students set role = 'tutor' where student_id = 2;
 update students set role = 'admin' where student_id = 4;
+
+-- NOTA: sem seed de atividade — a demo começa do ZERO. O aluno faz o OVA ao
+-- vivo (lê, assiste, responde o quiz) e, ao errar questões, o agente EduBot
+-- passa a recomendar a OVA de reforço (quiz extra) daquela competência.
