@@ -98,16 +98,16 @@ insert into resources
 (resource_id, ova_id, resource_type, resource_title, resource_url, media_type, duration_seconds, competency_id)
 values
 (29, 4, "texto",     "Leitura: O que é Computação na Nuvem",          NULL, NULL, NULL, 7),
-(30, 4, "video",     "Vídeo: Computação em nuvem explicada",          "https://www.youtube.com/watch?v=M988_fsOSWo", "youtube", NULL, 7),
+(30, 4, "video",     "Vídeo: Computação em nuvem explicada",          "https://www.youtube.com/watch?v=97l0Ahu2efE", "youtube", NULL, 7),
 (31, 4, "podcast",   "Podcast: Nuvem na prática (ep. 1)",             "https://www.soundhelix.com/examples/audio/SoundHelix-Song-4.mp3", "upload", 360, 8),
 (32, 4, "quiz",      "Quiz: Computação na Nuvem",                     NULL, NULL, NULL, NULL),
 (33, 4, "atividade", "Atividade prática: suba uma VM gratuita na AWS/Azure", NULL, NULL, NULL, NULL),
 -- Banco de remediação por competência (usado pelo agente de OVA de reforço)
-(34, 4, "video", "Reforço: IaaS, PaaS e SaaS em 5 minutos",          "https://www.youtube.com/watch?v=DjAfdDhdPnc", "youtube", NULL, 7),
+(34, 4, "video", "Reforço: IaaS, PaaS e SaaS em 5 minutos",          "https://www.youtube.com/watch?v=N0SYCyS2xZA", "youtube", NULL, 7),
 (35, 4, "texto", "Reforço (texto): Modelos de serviço de nuvem",     "https://azure.microsoft.com/pt-br/resources/cloud-computing-dictionary/what-is-iaas/", "link", NULL, 7),
-(36, 4, "video", "Reforço: Nuvem pública, privada e híbrida",        "https://www.youtube.com/watch?v=1ERdeg8Cs_k", "youtube", NULL, 8),
+(36, 4, "video", "Reforço: Nuvem pública, privada e híbrida",        "https://www.youtube.com/watch?v=ymZo-ZwXFw8", "youtube", NULL, 8),
 (37, 4, "texto", "Reforço (texto): Modelos de implantação na nuvem", "https://learn.microsoft.com/pt-br/training/modules/describe-cloud-compute/", "link", NULL, 8),
-(38, 4, "video", "Reforço: Segurança e responsabilidade compartilhada", "https://www.youtube.com/watch?v=qsQ6E3LZf3k", "youtube", NULL, 9),
+(38, 4, "video", "Reforço: Segurança e responsabilidade compartilhada", "https://www.youtube.com/watch?v=97l0Ahu2efE", "youtube", NULL, 9),
 (39, 4, "texto", "Reforço (texto): Modelo de responsabilidade compartilhada", "https://aws.amazon.com/pt/compliance/shared-responsibility-model/", "link", NULL, 9);
 
 -- MELHORIA (Roteiro Cena 4): papéis. Gabriel (RA 2) vira TUTOR; Sanval (RA 4),
