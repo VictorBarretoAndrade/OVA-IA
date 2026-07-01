@@ -6,6 +6,7 @@ estilo do design system.
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { CarouselItem } from "../../services/ovaContent";
+import { useT } from "../../i18n";
 
 interface CarouselProps {
   items: CarouselItem[];
@@ -13,6 +14,7 @@ interface CarouselProps {
 }
 
 export const Carousel = ({ items, onInteract }: CarouselProps) => {
+  const t = useT();
   const [index, setIndex] = useState(0);
   if (items.length === 0) return null;
 
@@ -47,7 +49,7 @@ export const Carousel = ({ items, onInteract }: CarouselProps) => {
           <button
             onClick={() => go(-1)}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-brand transition hover:bg-indigo-50"
-            aria-label="Anterior"
+            aria-label={t("Anterior", "Previous")}
           >
             <ChevronLeft size={20} />
           </button>
@@ -56,7 +58,7 @@ export const Carousel = ({ items, onInteract }: CarouselProps) => {
               <button
                 key={dot}
                 onClick={() => setIndex(dot)}
-                aria-label={`Ir para o item ${dot + 1}`}
+                aria-label={t(`Ir para o item ${dot + 1}`, `Go to item ${dot + 1}`)}
                 className={`h-2.5 rounded-full transition-all ${
                   dot === index ? "w-6 bg-brand" : "w-2.5 bg-slate-300 hover:bg-slate-400"
                 }`}
@@ -66,7 +68,7 @@ export const Carousel = ({ items, onInteract }: CarouselProps) => {
           <button
             onClick={() => go(1)}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-line bg-white text-brand transition hover:bg-indigo-50"
-            aria-label="Próximo"
+            aria-label={t("Próximo", "Next")}
           >
             <ChevronRight size={20} />
           </button>

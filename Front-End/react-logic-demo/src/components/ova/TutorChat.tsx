@@ -6,10 +6,12 @@ respostas de um tutor que conhece SOMENTE o conteúdo daquele OVA (o material é
 enviado como contexto — ver services/ovaContent.ts e backend edubot_agent/
 tutor.py). Hoje o "cérebro" é mockado, mas o contrato já é o da LLM real.
 */
-import { Bot, BookMarked, LoaderCircle, Send, Sparkles, User, X } from "lucide-react";
+import { Bot, BookMarked, LoaderCircle, Send, User, X } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { TutorMessage, TutorSource, tutorChat } from "../../services/api";
 import { useToast } from "../ui/Toast";
+import { useT } from "../../i18n";
+import { EduBotLogo } from "../brand/EduBotLogo";
 
 // Mensagem do chat com as fontes (seções do OVA) que embasaram a resposta.
 type ChatMessage = TutorMessage & { sources?: TutorSource[] };
@@ -21,17 +23,20 @@ interface TutorChatProps {
   onClose: () => void;
 }
 
-const SUGGESTIONS = [
-  "Resuma os principais pontos deste conteúdo",
-  "Explique o conceito mais importante com outras palavras",
-  "Me dê um exemplo prático do que estudei"
-];
-
 export const TutorChat = ({ ovaId, ovaName, context, onClose }: TutorChatProps) => {
+  const t = useT();
+  const SUGGESTIONS = [
+    t("Resuma os principais pontos deste conteúdo", "Summarize the main points of this content"),
+    t("Explique o conceito mais importante com outras palavras", "Explain the most important concept in other words"),
+    t("Me dê um exemplo prático do que estudei", "Give me a practical example of what I studied")
+  ];
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: `Olá! Posso conversar com você sobre o que está lendo agora, em "${ovaName}". Pergunte o que quiser sobre este conteúdo. 😊`
+      content: t(
+        `Olá! Posso conversar com você sobre o que está lendo agora, em "${ovaName}". Pergunte o que quiser sobre este conteúdo. 😊`,
+        `Hi! I can talk with you about what you're reading now, in "${ovaName}". Ask anything about this content. 😊`
+      )
     }
   ]);
   const [input, setInput] = useState("");
@@ -58,7 +63,7 @@ export const TutorChat = ({ ovaId, ovaName, context, onClose }: TutorChatProps) 
       const { reply, sources } = await tutorChat(ovaId, context, dialog);
       setMessages((current) => [...current, { role: "assistant", content: reply, sources }]);
     } catch {
-      toast.error("Não foi possível falar com o tutor agora. Tente novamente.");
+      toast.error(t("Não foi possível falar com o tutor agora. Tente novamente.", "Couldn't reach the assistant right now. Try again."));
       setMessages((current) => current.slice(0, -1));
       setInput(text);
     } finally {
@@ -75,17 +80,17 @@ export const TutorChat = ({ ovaId, ovaName, context, onClose }: TutorChatProps) 
     <div className="flex h-full flex-col overflow-hidden rounded-[8px] border border-line bg-white shadow-soft">
       <header className="flex items-center justify-between gap-3 border-b border-line bg-gradient-to-r from-brand to-indigo-500 px-5 py-4 text-white">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20">
-            <Sparkles size={20} />
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 p-1">
+            <EduBotLogo size={30} />
           </div>
           <div>
-            <div className="font-bold leading-tight">Assistente do conteúdo</div>
-            <div className="text-xs text-white/80">Conversando sobre “{ovaName}”</div>
+            <div className="font-bold leading-tight">{t("Professor Mediador", "Mediating Professor")}</div>
+            <div className="text-xs text-white/80">{t("Conversando sobre", "Talking about")} “{ovaName}”</div>
           </div>
         </div>
         <button
           onClick={onClose}
-          aria-label="Fechar tutor"
+          aria-label={t("Fechar", "Close")}
           className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-white/20"
         >
           <X size={18} />
@@ -141,14 +146,14 @@ export const TutorChat = ({ ovaId, ovaName, context, onClose }: TutorChatProps) 
             </div>
             <div className="flex items-center gap-2 rounded-[12px] rounded-tl-none border border-line bg-white px-4 py-2.5 text-sm text-muted">
               <LoaderCircle size={15} className="animate-spin" />
-              Pensando...
+              {t("Pensando...", "Thinking...")}
             </div>
           </div>
         )}
 
         {messages.length === 1 && !loading && (
           <div className="space-y-2 pt-2">
-            <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">Sugestões</p>
+            <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted">{t("Sugestões", "Suggestions")}</p>
             {SUGGESTIONS.map((suggestion) => (
               <button
                 key={suggestion}
@@ -166,13 +171,13 @@ export const TutorChat = ({ ovaId, ovaName, context, onClose }: TutorChatProps) 
         <input
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Pergunte sobre este conteúdo..."
+          placeholder={t("Pergunte sobre este conteúdo...", "Ask about this content...")}
           className="h-11 w-full rounded-[8px] border border-line bg-slate-50 px-4 text-sm text-ink outline-none focus:border-brand"
         />
         <button
           type="submit"
           disabled={loading || !input.trim()}
-          aria-label="Enviar"
+          aria-label={t("Enviar", "Send")}
           className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[8px] bg-brand text-white transition hover:bg-indigo-600 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           <Send size={18} />

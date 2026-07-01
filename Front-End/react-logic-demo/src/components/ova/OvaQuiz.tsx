@@ -9,6 +9,7 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { OvaQuestion, answerQuestion, getOVAQuestions } from "../../services/api";
 import { useToast } from "../ui/Toast";
+import { useT } from "../../i18n";
 
 const LETTERS = "abcdefghijklmnopqrstuvwxyz";
 
@@ -19,6 +20,7 @@ interface OvaQuizProps {
 }
 
 export const OvaQuiz = ({ ovaId, studentId, onTracked }: OvaQuizProps) => {
+  const t = useT();
   const [questions, setQuestions] = useState<OvaQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [feedback, setFeedback] = useState<Record<number, boolean>>({});
@@ -51,12 +53,12 @@ export const OvaQuiz = ({ ovaId, studentId, onTracked }: OvaQuizProps) => {
     }
     setFeedback(next);
     setSubmitting(false);
-    if (failed) toast.error("Algumas respostas não puderam ser corrigidas. Verifique a conexão.");
+    if (failed) toast.error(t("Algumas respostas não puderam ser corrigidas. Verifique a conexão.", "Some answers couldn't be graded. Check your connection."));
     onTracked();
   };
 
   if (questions.length === 0) {
-    return <p className="text-muted">Nenhuma questão cadastrada para este OVA.</p>;
+    return <p className="text-muted">{t("Nenhuma questão cadastrada para este OVA.", "No questions registered for this OVA.")}</p>;
   }
 
   const answeredCount = Object.keys(answers).length;
@@ -106,7 +108,7 @@ export const OvaQuiz = ({ ovaId, studentId, onTracked }: OvaQuizProps) => {
                 }`}
               >
                 {graded ? <CheckCircle2 size={18} /> : <XCircle size={18} />}
-                {graded ? "Correta!" : "Incorreta."}
+                {graded ? t("Correta!", "Correct!") : t("Incorreta.", "Incorrect.")}
               </p>
             )}
           </div>
@@ -118,7 +120,7 @@ export const OvaQuiz = ({ ovaId, studentId, onTracked }: OvaQuizProps) => {
         disabled={submitting || answeredCount < questions.length}
         className="h-12 rounded-[8px] bg-coral px-6 font-bold text-white transition disabled:cursor-not-allowed disabled:bg-slate-300"
       >
-        {submitting ? "Corrigindo no servidor..." : "Verificar respostas"}
+        {submitting ? t("Corrigindo no servidor...", "Grading on the server...") : t("Verificar respostas", "Check answers")}
       </button>
     </div>
   );

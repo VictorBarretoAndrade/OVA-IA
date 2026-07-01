@@ -13,6 +13,7 @@ import {
   getSession
 } from "../services/api";
 import { useToast } from "./ui/Toast";
+import { useT } from "../i18n";
 
 interface QuizProps {
   profile: StudentProfile;
@@ -28,6 +29,7 @@ interface QuizResult {
 }
 
 export const Quiz = ({ profile, onTracked }: QuizProps) => {
+  const t = useT();
   const [activeOvaId, setActiveOvaId] = useState(profile.ovas[0]?.ova_id ?? 0);
   const [questions, setQuestions] = useState<OvaQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -70,7 +72,7 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
       }
     }
 
-    if (failed) toast.error("Algumas respostas não puderam ser corrigidas. Verifique a conexão.");
+    if (failed) toast.error(t("Algumas respostas não puderam ser corrigidas. Verifique a conexão.", "Some answers couldn't be graded. Check your connection."));
     setFeedback(newFeedback);
     setResult({
       correct,
@@ -85,7 +87,7 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
     <section className="grid gap-6 xl:grid-cols-[1fr_360px]">
       <div>
         <h1 className="text-3xl font-bold text-ink">Quiz</h1>
-        <p className="mt-2 text-muted">Questões corrigidas pelo servidor — cada tentativa alimenta o EduBot.</p>
+        <p className="mt-2 text-muted">{t("Questões corrigidas pelo servidor — cada tentativa alimenta o EduBot.", "Server-graded questions — each attempt feeds EduBot.")}</p>
 
         <div className="mt-5 flex flex-wrap gap-2">
           {profile.ovas.map((ova) => (
@@ -112,8 +114,8 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
                 }`}
               >
                 <div className="text-sm font-semibold text-brand">
-                  Questão {index + 1}
-                  {question.answered && " · já respondida corretamente antes"}
+                  {t("Questão", "Question")} {index + 1}
+                  {question.answered && t(" · já respondida corretamente antes", " · already answered correctly before")}
                 </div>
                 <h2 className="mt-2 text-lg font-bold text-ink">{question.statement}</h2>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -139,7 +141,7 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
                 </div>
                 {graded !== undefined && (
                   <p className={`mt-3 font-semibold ${graded ? "text-emerald-700" : "text-rose-700"}`}>
-                    {graded ? "Correta!" : "Incorreta."}
+                    {graded ? t("Correta!", "Correct!") : t("Incorreta.", "Incorrect.")}
                   </p>
                 )}
               </div>
@@ -147,7 +149,7 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
           })}
           {questions.length === 0 && (
             <p className="rounded-[8px] border border-line bg-white p-6 text-muted">
-              Nenhuma questão cadastrada para este OVA.
+              {t("Nenhuma questão cadastrada para este OVA.", "No questions registered for this OVA.")}
             </p>
           )}
         </div>
@@ -158,44 +160,45 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
             disabled={submitting || Object.keys(answers).length < questions.length}
             className="mt-6 h-12 rounded-[8px] bg-coral px-6 font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
           >
-            {submitting ? "Corrigindo no servidor..." : "Finalizar quiz"}
+            {submitting ? t("Corrigindo no servidor...", "Grading on the server...") : t("Finalizar quiz", "Finish quiz")}
           </button>
         )}
       </div>
 
       <aside className="h-fit rounded-[8px] border border-line bg-white p-6 shadow-soft">
-        <h2 className="text-xl font-bold text-ink">Feedback automático</h2>
+        <h2 className="text-xl font-bold text-ink">{t("Feedback automático", "Automatic feedback")}</h2>
         {result ? (
           <div className="mt-5 space-y-4">
             <div className="rounded-[8px] bg-slate-50 p-5">
-              <div className="text-sm text-muted">Nota</div>
+              <div className="text-sm text-muted">{t("Nota", "Score")}</div>
               <div className="text-4xl font-bold text-ink">{result.score.toFixed(1)}</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-[8px] bg-emerald-50 p-4 text-emerald-800">
-                <div className="text-sm">Acertos</div>
+                <div className="text-sm">{t("Acertos", "Correct")}</div>
                 <div className="text-2xl font-bold">{result.correct}</div>
               </div>
               <div className="rounded-[8px] bg-rose-50 p-4 text-rose-800">
-                <div className="text-sm">Erros</div>
+                <div className="text-sm">{t("Erros", "Wrong")}</div>
                 <div className="text-2xl font-bold">{result.wrong}</div>
               </div>
             </div>
             <p className="text-sm text-muted">
-              As tentativas foram registradas. Visite o <strong>Tutor IA</strong> para receber uma recomendação
-              baseada no seu desempenho.
+              {t("As tentativas foram registradas. Visite o", "Your attempts were recorded. Visit the")}{" "}
+              <strong>{t("Professor Mediador", "Mediating Professor")}</strong>{" "}
+              {t("para receber uma recomendação baseada no seu desempenho.", "to get a recommendation based on your performance.")}
             </p>
           </div>
         ) : (
           <div className="mt-4 space-y-3 text-muted">
-            <p>Finalize o quiz para visualizar nota, acertos e erros.</p>
+            <p>{t("Finalize o quiz para visualizar nota, acertos e erros.", "Finish the quiz to see score, correct and wrong answers.")}</p>
             <div className="rounded-[8px] bg-slate-50 p-4 text-sm">
-              <div className="font-semibold text-ink">Seu histórico</div>
+              <div className="font-semibold text-ink">{t("Seu histórico", "Your history")}</div>
               <p className="mt-1">
-                {profile.quiz.tentativas} tentativa(s) ·{" "}
+                {t(`${profile.quiz.tentativas} tentativa(s)`, `${profile.quiz.tentativas} attempt(s)`)} ·{" "}
                 {profile.quiz.taxa_erro != null
-                  ? `${Math.round(profile.quiz.taxa_erro * 100)}% de erro`
-                  : "sem registros ainda"}
+                  ? t(`${Math.round(profile.quiz.taxa_erro * 100)}% de erro`, `${Math.round(profile.quiz.taxa_erro * 100)}% error rate`)
+                  : t("sem registros ainda", "no records yet")}
               </p>
             </div>
           </div>

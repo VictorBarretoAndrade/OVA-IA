@@ -1,6 +1,8 @@
-import { Award, BarChart3, Bell, BookOpen, CalendarDays, GraduationCap, Grid2X2, LogOut, MessageCircle, Search, Stars, TrendingUp, Users } from "lucide-react";
+import { Award, BarChart3, Bell, BookOpen, CalendarDays, Grid2X2, Languages, LogOut, MessageCircle, Search, Stars, TrendingUp, Users } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { StudentProfile } from "../services/api";
+import { useLanguage, useT } from "../i18n";
+import { EduBotLogo } from "./brand/EduBotLogo";
 
 interface SidebarProps {
   activeView: string;
@@ -10,65 +12,65 @@ interface SidebarProps {
   onLogout: () => void;
 }
 
+// Cada item guarda o rótulo nos dois idiomas (traduzido no render)
 const navItems = [
-  { id: "dashboard", label: "Dashboard", icon: Grid2X2 },
-  { id: "contents", label: "Conteúdos", icon: BookOpen },
-  { id: "exercises", label: "Atividades", icon: CalendarDays },
-  { id: "quiz", label: "Quiz", icon: Award },
-  { id: "reforco", label: "Reforço", icon: Stars },
-  { id: "evolution", label: "Meu Desempenho", icon: BarChart3 },
-  { id: "report", label: "Tutor IA", icon: MessageCircle }
+  { id: "dashboard", pt: "Dashboard", en: "Dashboard", icon: Grid2X2 },
+  { id: "contents", pt: "Conteúdos", en: "Contents", icon: BookOpen },
+  { id: "exercises", pt: "Atividades", en: "Activities", icon: CalendarDays },
+  { id: "quiz", pt: "Quiz", en: "Quiz", icon: Award },
+  { id: "reforco", pt: "Reforço", en: "Reinforcement", icon: Stars },
+  { id: "evolution", pt: "Meu Desempenho", en: "My Performance", icon: BarChart3 },
+  { id: "report", pt: "Professor Mediador", en: "Mediating Professor", icon: MessageCircle }
 ];
 
 // Item exclusivo de tutor/admin (gestão pedagógica)
-const tutorItem = { id: "tutor", label: "Turma", icon: Users };
+const tutorItem = { id: "tutor", pt: "Turma", en: "Class", icon: Users };
 
 export const Sidebar = ({ activeView, onChangeView, studentName, role, onLogout }: SidebarProps) => {
+  const t = useT();
   const items = role === "tutor" || role === "admin" ? [...navItems, tutorItem] : navItems;
   return (
-  <aside className="hidden min-h-screen w-[340px] shrink-0 border-r border-line bg-white/70 lg:block">
-    <div className="flex h-20 items-center gap-3 border-b border-line px-5">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand text-white shadow-soft">
-        <GraduationCap size={27} />
+    <aside className="hidden min-h-screen w-[340px] shrink-0 border-r border-line bg-white/70 lg:block">
+      <div className="flex h-20 items-center gap-3 border-b border-line px-5">
+        <EduBotLogo size={46} />
+        <div>
+          <div className="text-2xl font-bold leading-none text-ink">Adapta</div>
+          <div className="mt-1 text-sm tracking-[0.18em] text-muted">LEARN · IA</div>
+        </div>
       </div>
-      <div>
-        <div className="text-2xl font-bold leading-none text-ink">Adapta</div>
-        <div className="mt-1 text-sm tracking-[0.18em] text-muted">LEARN · IA</div>
+
+      <nav className="space-y-2 px-3 py-8">
+        {items.map((item) => {
+          const Icon = item.icon;
+          const active = item.id === activeView;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onChangeView(item.id)}
+              className={`flex h-14 w-full items-center gap-4 rounded-[8px] px-5 text-left text-lg transition ${
+                active ? "bg-indigo-50 text-indigo-800 shadow-soft" : "text-muted hover:bg-slate-50"
+              }`}
+            >
+              <Icon size={22} />
+              {t(item.pt, item.en)}
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* INTEGRAÇÃO (4.2): aluno logado real + logout */}
+      <div className="mx-3 mt-auto border-t border-line px-2 py-6">
+        <div className="px-3 text-sm text-muted">{t("Conectado como", "Signed in as")}</div>
+        <div className="px-3 font-bold text-ink">{studentName}</div>
+        <button
+          onClick={onLogout}
+          className="mt-3 flex h-11 w-full items-center gap-3 rounded-[8px] px-3 text-left text-muted transition hover:bg-rose-50 hover:text-rose-700"
+        >
+          <LogOut size={20} />
+          {t("Sair", "Sign out")}
+        </button>
       </div>
-    </div>
-
-    <nav className="space-y-2 px-3 py-8">
-      {items.map((item) => {
-        const Icon = item.icon;
-        const active = item.id === activeView;
-        return (
-          <button
-            key={item.id}
-            onClick={() => onChangeView(item.id)}
-            className={`flex h-14 w-full items-center gap-4 rounded-[8px] px-5 text-left text-lg transition ${
-              active ? "bg-indigo-50 text-indigo-800 shadow-soft" : "text-muted hover:bg-slate-50"
-            }`}
-          >
-            <Icon size={22} />
-            {item.label}
-          </button>
-        );
-      })}
-    </nav>
-
-    {/* INTEGRAÇÃO (4.2): aluno logado real + logout */}
-    <div className="mx-3 mt-auto border-t border-line px-2 py-6">
-      <div className="px-3 text-sm text-muted">Conectado como</div>
-      <div className="px-3 font-bold text-ink">{studentName}</div>
-      <button
-        onClick={onLogout}
-        className="mt-3 flex h-11 w-full items-center gap-3 rounded-[8px] px-3 text-left text-muted transition hover:bg-rose-50 hover:text-rose-700"
-      >
-        <LogOut size={20} />
-        Sair
-      </button>
-    </div>
-  </aside>
+    </aside>
   );
 };
 
@@ -88,6 +90,8 @@ export const Topbar = ({
   profile: StudentProfile;
   onChangeView: (view: string) => void;
 }) => {
+  const t = useT();
+  const { lang, toggle } = useLanguage();
   const [query, setQuery] = useState("");
   const [showNotif, setShowNotif] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
@@ -109,17 +113,18 @@ export const Topbar = ({
     if (!q) return [];
     const out: SearchResult[] = [];
     navItems.forEach((item) => {
-      if (item.label.toLowerCase().includes(q)) out.push({ label: item.label, sub: "Ir para a seção", view: item.id });
+      const label = t(item.pt, item.en);
+      if (label.toLowerCase().includes(q)) out.push({ label, sub: t("Ir para a seção", "Go to section"), view: item.id });
     });
     profile.ovas.forEach((ova) => {
-      if (ova.ova_name.toLowerCase().includes(q)) out.push({ label: ova.ova_name, sub: "OVA · Conteúdos", view: "contents" });
+      if (ova.ova_name.toLowerCase().includes(q)) out.push({ label: ova.ova_name, sub: t("OVA · Conteúdos", "OVA · Contents"), view: "contents" });
     });
     profile.competencias.forEach((comp) => {
       if (comp.nome.toLowerCase().includes(q))
-        out.push({ label: comp.nome, sub: "Competência · Meu Desempenho", view: "evolution" });
+        out.push({ label: comp.nome, sub: t("Competência · Meu Desempenho", "Competency · My Performance"), view: "evolution" });
     });
     return out.slice(0, 8);
-  }, [q, profile]);
+  }, [q, profile, t]);
 
   const pick = (view: string) => {
     onChangeView(view);
@@ -136,14 +141,14 @@ export const Topbar = ({
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar OVAs, competências, seções..."
+            placeholder={t("Buscar OVAs, competências, seções...", "Search OVAs, competencies, sections...")}
             className="w-full bg-transparent text-lg text-ink outline-none placeholder:text-muted"
           />
         </div>
         {q && (
           <div className="absolute left-0 right-0 top-16 z-30 overflow-hidden rounded-[8px] border border-line bg-white shadow-soft">
             {results.length === 0 ? (
-              <div className="px-5 py-4 text-muted">Nada encontrado para “{query}”.</div>
+              <div className="px-5 py-4 text-muted">{t("Nada encontrado para", "No results for")} “{query}”.</div>
             ) : (
               results.map((result, index) => (
                 <button
@@ -161,26 +166,37 @@ export const Topbar = ({
       </div>
 
       <div className="ml-4 flex items-center gap-4">
+        {/* Alternador de idioma PT/EN */}
+        <button
+          onClick={toggle}
+          className="flex h-10 items-center gap-2 rounded-[8px] border border-line bg-white px-3 font-bold text-ink transition hover:bg-slate-50"
+          aria-label={t("Trocar idioma", "Switch language")}
+          title={t("Trocar idioma", "Switch language")}
+        >
+          <Languages size={18} className="text-brand" />
+          {lang === "pt" ? "PT" : "EN"}
+        </button>
+
         {/* INTEGRAÇÃO: o chip fake de "streak" virou o consumo real de recursos */}
         <div className="flex h-10 items-center gap-2 rounded-[8px] bg-coral px-4 font-bold text-white">
           <TrendingUp size={19} />
-          {profile.recursos.percentual_consumido}% consumido
+          {profile.recursos.percentual_consumido}% {t("consumido", "consumed")}
         </div>
         <div ref={notifRef} className="relative">
           <button
             onClick={() => setShowNotif((value) => !value)}
             className="relative flex h-12 w-12 items-center justify-center rounded-full border border-line bg-white text-ink transition hover:bg-slate-50"
-            aria-label="Avisos do EduBot"
+            aria-label={t("Avisos do EduBot", "EduBot notices")}
           >
             <Bell size={22} />
             {notifications.length > 0 && <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-red-500" />}
           </button>
           {showNotif && (
             <div className="absolute right-0 top-14 z-30 w-80 overflow-hidden rounded-[8px] border border-line bg-white shadow-soft">
-              <div className="border-b border-line px-4 py-3 font-bold text-ink">Avisos do EduBot</div>
+              <div className="border-b border-line px-4 py-3 font-bold text-ink">{t("Avisos do EduBot", "EduBot notices")}</div>
               <div className="max-h-96 overflow-auto">
                 {notifications.length === 0 ? (
-                  <p className="px-4 py-4 text-sm text-muted">Nenhum aviso por enquanto.</p>
+                  <p className="px-4 py-4 text-sm text-muted">{t("Nenhum aviso por enquanto.", "No notices yet.")}</p>
                 ) : (
                   notifications.map((item, index) => (
                     <div key={`${item.data}-${index}`} className="border-b border-line px-4 py-3 last:border-0">

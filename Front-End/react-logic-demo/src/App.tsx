@@ -10,6 +10,7 @@ import { Sidebar, Topbar } from "./components/Sidebar";
 import { Login } from "./components/Login";
 import { LoaderCircle } from "lucide-react";
 import { OvaState, Session, StudentProfile, clearSession, getMe, getSession, getToken } from "./services/api";
+import { useT } from "./i18n";
 
 // MELHORIA — cada tela vira um chunk separado (React.lazy), então o app só baixa
 // o código da aba que o aluno abrir, em vez de tudo (inclusive os gráficos
@@ -37,6 +38,7 @@ const App = () => {
   const [error, setError] = useState<string | null>(null);
   // OVA aberto no leitor nativo (null = nenhum). Tem precedência sobre activeView.
   const [readerOva, setReaderOva] = useState<OvaState | null>(null);
+  const t = useT();
 
   // (Re)carrega o perfil completo do aluno — chamado no login e após cada
   // ação rastreada (progresso de mídia, quiz, recomendação), mantendo
@@ -51,7 +53,7 @@ const App = () => {
         setSession(null);
         setProfile(null);
       } else {
-        setError("Não foi possível carregar seus dados. A API está no ar?");
+        setError("load_failed");
       }
     }
   }, []);
@@ -88,7 +90,13 @@ const App = () => {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-slate-50 text-muted">
         <LoaderCircle className="animate-spin text-brand" size={40} />
-        {error ? <p className="font-semibold text-rose-600">{error}</p> : <p>Carregando seu perfil...</p>}
+        {error ? (
+          <p className="font-semibold text-rose-600">
+            {t("Não foi possível carregar seus dados. A API está no ar?", "Couldn't load your data. Is the API up?")}
+          </p>
+        ) : (
+          <p>{t("Carregando seu perfil...", "Loading your profile...")}</p>
+        )}
       </div>
     );
   }

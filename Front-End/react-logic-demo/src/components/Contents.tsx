@@ -21,6 +21,7 @@ import {
 import { useToast } from "./ui/Toast";
 import { VideoPlayer, MediaProgress } from "./players/VideoPlayer";
 import { AudioPlayer } from "./players/AudioPlayer";
+import { useT } from "../i18n";
 
 interface ContentsProps {
   profile: StudentProfile;
@@ -31,6 +32,7 @@ interface ContentsProps {
 }
 
 export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
+  const t = useT();
   const [activeOvaId, setActiveOvaId] = useState(profile.ovas[0]?.ova_id ?? 0);
   const [resources, setResources] = useState<OvaResource[]>([]);
   const activeOva = profile.ovas.find((ova) => ova.ova_id === activeOvaId);
@@ -61,13 +63,13 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
       completed: progress.completed
     })
       .then(onTracked)
-      .catch(() => toast.error("Não foi possível salvar seu progresso. Verifique a conexão."));
+      .catch(() => toast.error(t("Não foi possível salvar seu progresso. Verifique a conexão.", "Couldn't save your progress. Check your connection.")));
   };
 
   const trackText = (resource: OvaResource) => {
     saveResourceProgress({ resource_id: resource.resource_id, perc_consumed: 100, completed: true })
       .then(onTracked)
-      .catch(() => toast.error("Não foi possível registrar a leitura."));
+      .catch(() => toast.error(t("Não foi possível registrar a leitura.", "Couldn't record the reading.")));
   };
 
   const completeActivity = (resource: OvaResource) => {
@@ -79,15 +81,15 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
           )
         );
         onTracked();
-        toast.success("Atividade marcada como concluída!");
+        toast.success(t("Atividade marcada como concluída!", "Activity marked as completed!"));
       })
-      .catch(() => toast.error("Não foi possível concluir a atividade."));
+      .catch(() => toast.error(t("Não foi possível concluir a atividade.", "Couldn't complete the activity.")));
   };
 
   return (
     <section className="grid gap-6 xl:grid-cols-[330px_1fr]">
       <div className="space-y-3">
-        <h1 className="mb-5 text-3xl font-bold text-ink">Área de Conteúdo</h1>
+        <h1 className="mb-5 text-3xl font-bold text-ink">{t("Área de Conteúdo", "Content Area")}</h1>
         {profile.ovas.map((ova) => (
           <button
             key={ova.ova_id}
@@ -102,7 +104,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
             </div>
             <div className="mt-2 font-bold text-ink">{ova.ova_name}</div>
             <div className="mt-2 text-sm text-muted">
-              {ova.perc_scrolled || 0}% lido · {Math.round((ova.read_time || 0) / 60)} min estudados
+              {ova.perc_scrolled || 0}% {t("lido", "read")} · {Math.round((ova.read_time || 0) / 60)} {t("min estudados", "min studied")}
             </div>
           </button>
         ))}
@@ -113,11 +115,13 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
           <div className="rounded-[8px] border border-line bg-white p-6 shadow-soft">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
-                <p className="font-semibold text-brand">Leitura interativa</p>
+                <p className="font-semibold text-brand">{t("Leitura interativa", "Interactive reading")}</p>
                 <h2 className="mt-1 text-2xl font-bold text-ink">{activeOva.ova_name}</h2>
                 <p className="mt-2 text-muted">
-                  O texto completo, os acordeões e os carrosséis abrem aqui mesmo, no novo leitor — com Tutor IA
-                  integrado. O tempo de leitura e o scroll continuam sendo rastreados normalmente.
+                  {t(
+                    "O texto completo, os acordeões e os carrosséis abrem aqui mesmo, no novo leitor — com o Professor Mediador integrado. O tempo de leitura e o scroll continuam sendo rastreados normalmente.",
+                    "The full text, accordions and carousels open right here in the new reader — with the Mediating Professor built in. Reading time and scroll keep being tracked normally."
+                  )}
                 </p>
               </div>
               <button
@@ -125,7 +129,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
                 className="flex h-11 items-center gap-2 rounded-[8px] bg-brand px-5 font-semibold text-white transition hover:bg-indigo-600"
               >
                 <BookOpenText size={19} />
-                Abrir conteúdo
+                {t("Abrir conteúdo", "Open content")}
               </button>
             </div>
           </div>
@@ -149,7 +153,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
                 onClick={() => trackText(resource)}
                 className="rounded-[8px] border border-brand px-4 py-2 font-semibold text-brand transition hover:bg-indigo-50"
               >
-                {resource.completed ? "Reler" : "Abrir leitura"}
+                {resource.completed ? t("Reler", "Read again") : t("Abrir leitura", "Open reading")}
               </a>
             </div>
           ))}
@@ -191,20 +195,20 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
                 <ListChecks className="text-brand" size={24} />
                 <div>
                   <div className="font-bold text-ink">{resource.resource_title}</div>
-                  <div className="text-sm text-muted">Atividade prática</div>
+                  <div className="text-sm text-muted">{t("Atividade prática", "Practical activity")}</div>
                 </div>
               </div>
               {resource.completed ? (
                 <span className="flex items-center gap-2 rounded-[8px] bg-emerald-50 px-4 py-2 font-semibold text-emerald-700">
                   <CheckCircle2 size={18} />
-                  Concluída
+                  {t("Concluída", "Completed")}
                 </span>
               ) : (
                 <button
                   onClick={() => completeActivity(resource)}
                   className="h-11 rounded-[8px] bg-teal px-5 font-semibold text-white"
                 >
-                  Marcar como concluída
+                  {t("Marcar como concluída", "Mark as completed")}
                 </button>
               )}
             </div>

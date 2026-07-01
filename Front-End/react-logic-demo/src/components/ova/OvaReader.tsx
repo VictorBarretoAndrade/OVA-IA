@@ -25,6 +25,7 @@ import { OvaContent, fetchOvaContent, ovaContextText } from "../../services/ovaC
 import { AudioPlayer } from "../players/AudioPlayer";
 import { MediaProgress, VideoPlayer } from "../players/VideoPlayer";
 import { useToast } from "../ui/Toast";
+import { useT } from "../../i18n";
 import { Accordion } from "./Accordion";
 import { Carousel } from "./Carousel";
 import { OvaQuiz } from "./OvaQuiz";
@@ -57,6 +58,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
   );
   const [progress, setProgress] = useState(0);
   const toast = useToast();
+  const t = useT();
 
   // Carrega o conteúdo do OVA (HTML -> modelo estruturado) e os recursos de mídia
   useEffect(() => {
@@ -131,7 +133,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
       completed: state.completed
     })
       .then(onTracked)
-      .catch(() => toast.error("Não foi possível salvar seu progresso na mídia."));
+      .catch(() => toast.error(t("Não foi possível salvar seu progresso na mídia.", "Couldn't save your media progress.")));
   };
 
   const completeActivity = (resource: OvaResource) => {
@@ -143,9 +145,9 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
           )
         );
         onTracked();
-        toast.success("Atividade marcada como concluída!");
+        toast.success(t("Atividade marcada como concluída!", "Activity marked as completed!"));
       })
-      .catch(() => toast.error("Não foi possível concluir a atividade."));
+      .catch(() => toast.error(t("Não foi possível concluir a atividade.", "Couldn't complete the activity.")));
   };
 
   const videoResources = resources.filter((r) => r.resource_type === "video");
@@ -162,13 +164,13 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
             <button
               onClick={onBack}
               className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-line bg-white text-ink transition hover:bg-slate-50"
-              aria-label="Voltar"
+              aria-label={t("Voltar", "Back")}
             >
               <ArrowLeft size={20} />
             </button>
             <div>
               <p className="flex items-center gap-2 font-semibold text-brand">
-                <BookOpenText size={18} /> Leitura interativa
+                <BookOpenText size={18} /> {t("Leitura interativa", "Interactive reading")}
               </p>
               <h1 className="text-2xl font-bold text-ink">{ova.ova_name}</h1>
             </div>
@@ -183,7 +185,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
             }`}
           >
             <Sparkles size={18} />
-            {showTutor ? "Ocultar assistente" : "Tirar dúvidas com a IA"}
+            {showTutor ? t("Ocultar assistente", "Hide assistant") : t("Tirar dúvidas com a IA", "Ask the AI")}
           </button>
         </div>
 
@@ -194,7 +196,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
 
         {error && (
           <div className="rounded-[8px] border border-rose-200 bg-rose-50 p-6 text-rose-700">
-            Não foi possível carregar o conteúdo deste OVA.
+            {t("Não foi possível carregar o conteúdo deste OVA.", "Couldn't load this OVA's content.")}
           </div>
         )}
 
@@ -255,7 +257,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
                   {/* Quiz embutido na seção de conclusão */}
                   {section.hasQuiz && (
                     <div className="pt-2">
-                      <h3 className="mb-4 text-xl font-bold text-ink">Teste seus conhecimentos</h3>
+                      <h3 className="mb-4 text-xl font-bold text-ink">{t("Teste seus conhecimentos", "Test your knowledge")}</h3>
                       <OvaQuiz ovaId={ova.ova_id} studentId={studentId} onTracked={onTracked} />
                     </div>
                   )}
@@ -267,7 +269,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
             {hasMedia && (
               <section className="rounded-[8px] border border-line bg-white p-7 shadow-soft">
                 <h2 className="mb-5 border-b border-line pb-3 text-2xl font-bold text-ink">
-                  Recursos adicionais
+                  {t("Recursos adicionais", "Additional resources")}
                 </h2>
                 <div className="space-y-5">
                   {videoResources.map((resource) => (
@@ -299,19 +301,19 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
                         <ListChecks className="text-brand" size={24} />
                         <div>
                           <div className="font-bold text-ink">{resource.resource_title}</div>
-                          <div className="text-sm text-muted">Atividade prática</div>
+                          <div className="text-sm text-muted">{t("Atividade prática", "Practical activity")}</div>
                         </div>
                       </div>
                       {resource.completed ? (
                         <span className="flex items-center gap-2 rounded-[8px] bg-emerald-50 px-4 py-2 font-semibold text-emerald-700">
-                          <CheckCircle2 size={18} /> Concluída
+                          <CheckCircle2 size={18} /> {t("Concluída", "Completed")}
                         </span>
                       ) : (
                         <button
                           onClick={() => completeActivity(resource)}
                           className="h-11 rounded-[8px] bg-teal px-5 font-semibold text-white"
                         >
-                          Marcar como concluída
+                          {t("Marcar como concluída", "Mark as completed")}
                         </button>
                       )}
                     </div>
@@ -332,10 +334,10 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
             logInteraction("Abriu o assistente do OVA");
           }}
           className="fixed right-0 top-1/2 z-30 flex -translate-y-1/2 items-center gap-2 rounded-l-[10px] bg-brand py-4 pl-3 pr-2 font-semibold text-white shadow-soft transition hover:bg-indigo-600 [writing-mode:vertical-rl]"
-          aria-label="Abrir o assistente do conteúdo"
+          aria-label={t("Abrir o assistente do conteúdo", "Open the content assistant")}
         >
           <Sparkles size={18} className="rotate-90" />
-          Pergunte à IA
+          {t("Pergunte à IA", "Ask the AI")}
         </button>
       )}
 

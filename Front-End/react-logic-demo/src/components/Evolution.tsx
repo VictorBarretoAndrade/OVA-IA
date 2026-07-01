@@ -19,12 +19,20 @@ import {
   YAxis
 } from "recharts";
 import { StudentProfile } from "../services/api";
+import { useT } from "../i18n";
 
 interface EvolutionProps {
   profile: StudentProfile;
 }
 
 export const Evolution = ({ profile }: EvolutionProps) => {
+  const t = useT();
+  // Rótulos das séries (aparecem na legenda dos gráficos)
+  const kRead = t("percentual lido", "percent read");
+  const kMin = t("minutos de leitura", "reading minutes");
+  const kConsumed = t("consumidos", "consumed");
+  const kTotal = t("total", "total");
+
   const competencyData = profile.competencias.map((item, index) => ({
     nome: `Comp. ${index + 1}`,
     completo: item.nome,
@@ -34,26 +42,26 @@ export const Evolution = ({ profile }: EvolutionProps) => {
 
   const typeData = Object.entries(profile.recursos.por_tipo).map(([tipo, stats]) => ({
     tipo,
-    consumidos: stats.consumidos,
-    total: stats.total
+    [kConsumed]: stats.consumidos,
+    [kTotal]: stats.total
   }));
 
   const ovaData = profile.ovas.map((ova) => ({
     nome: ova.ova_name.length > 18 ? `${ova.ova_name.slice(0, 18)}…` : ova.ova_name,
-    "percentual lido": ova.perc_scrolled || 0,
-    "minutos de leitura": Math.round((ova.read_time || 0) / 60)
+    [kRead]: ova.perc_scrolled || 0,
+    [kMin]: Math.round((ova.read_time || 0) / 60)
   }));
 
   return (
     <section>
-      <h1 className="text-3xl font-bold text-ink">Evolução do Aluno</h1>
-      <p className="mt-2 text-muted">Gráficos gerados a partir dos dados rastreados no backend.</p>
+      <h1 className="text-3xl font-bold text-ink">{t("Evolução do Aluno", "Student Progress")}</h1>
+      <p className="mt-2 text-muted">{t("Gráficos gerados a partir dos dados rastreados no backend.", "Charts generated from the data tracked in the backend.")}</p>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
         {/* Teia de competências (gráfico radar) — visão do domínio do aluno */}
         <div className="rounded-[8px] border border-line bg-white p-6 shadow-sm xl:col-span-2">
-          <h2 className="text-xl font-bold text-ink">Teia de competências</h2>
-          <p className="mt-1 text-sm text-muted">% de acertos por competência (quanto mais cheia a teia, melhor o domínio).</p>
+          <h2 className="text-xl font-bold text-ink">{t("Teia de competências", "Competency web")}</h2>
+          <p className="mt-1 text-sm text-muted">{t("% de acertos por competência (quanto mais cheia a teia, melhor o domínio).", "% correct per competency (the fuller the web, the better the mastery).")}</p>
           <div className="mt-5 h-96">
             <ResponsiveContainer>
               <RadarChart data={competencyData} outerRadius="72%">
@@ -61,20 +69,20 @@ export const Evolution = ({ profile }: EvolutionProps) => {
                 <PolarAngleAxis dataKey="nome" tick={{ fontSize: 12 }} />
                 <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fontSize: 10 }} />
                 <Tooltip
-                  formatter={(value: number) => [`${value}%`, "acertos"]}
+                  formatter={(value: number) => [`${value}%`, t("acertos", "correct")]}
                   labelFormatter={(label: string) => {
                     const item = competencyData.find((entry) => entry.nome === label);
                     return item ? `${item.completo} (${item.status})` : label;
                   }}
                 />
-                <Radar name="Acertos" dataKey="score" stroke="#604fd8" fill="#604fd8" fillOpacity={0.35} />
+                <Radar name={t("Acertos", "Correct")} dataKey="score" stroke="#604fd8" fill="#604fd8" fillOpacity={0.35} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="rounded-[8px] border border-line bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-ink">Leitura por OVA</h2>
+          <h2 className="text-xl font-bold text-ink">{t("Leitura por OVA", "Reading per OVA")}</h2>
           <div className="mt-5 h-72">
             <ResponsiveContainer>
               <BarChart data={ovaData}>
@@ -83,15 +91,15 @@ export const Evolution = ({ profile }: EvolutionProps) => {
                 <YAxis />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="percentual lido" fill="#604fd8" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="minutos de leitura" fill="#ff7b65" radius={[8, 8, 0, 0]} />
+                <Bar dataKey={kRead} fill="#604fd8" radius={[8, 8, 0, 0]} />
+                <Bar dataKey={kMin} fill="#ff7b65" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="rounded-[8px] border border-line bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-ink">Consumo por tipo de recurso</h2>
+          <h2 className="text-xl font-bold text-ink">{t("Consumo por tipo de recurso", "Consumption by resource type")}</h2>
           <div className="mt-5 h-72">
             <ResponsiveContainer>
               <BarChart data={typeData}>
@@ -100,15 +108,15 @@ export const Evolution = ({ profile }: EvolutionProps) => {
                 <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Bar dataKey="consumidos" fill="#15beb5" radius={[8, 8, 0, 0]} />
-                <Bar dataKey="total" fill="#dfe5ef" radius={[8, 8, 0, 0]} />
+                <Bar dataKey={kConsumed} fill="#15beb5" radius={[8, 8, 0, 0]} />
+                <Bar dataKey={kTotal} fill="#dfe5ef" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         <div className="rounded-[8px] border border-line bg-white p-6 shadow-sm xl:col-span-2">
-          <h2 className="text-xl font-bold text-ink">Competências desenvolvidas</h2>
+          <h2 className="text-xl font-bold text-ink">{t("Competências desenvolvidas", "Developed competencies")}</h2>
           <div className="mt-5 h-80">
             <ResponsiveContainer>
               <BarChart data={competencyData}>
@@ -116,7 +124,7 @@ export const Evolution = ({ profile }: EvolutionProps) => {
                 <XAxis dataKey="nome" interval={0} height={50} tick={{ fontSize: 12 }} />
                 <YAxis domain={[0, 100]} />
                 <Tooltip
-                  formatter={(value: number) => [`${value}%`, "acertos"]}
+                  formatter={(value: number) => [`${value}%`, t("acertos", "correct")]}
                   labelFormatter={(label: string) => {
                     const item = competencyData.find((entry) => entry.nome === label);
                     return item ? `${item.completo} (${item.status})` : label;

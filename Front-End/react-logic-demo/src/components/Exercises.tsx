@@ -8,6 +8,7 @@ import { CheckCircle2, ClipboardList } from "lucide-react";
 import { useState } from "react";
 import { StudentProfile, saveResourceProgress } from "../services/api";
 import { useToast } from "./ui/Toast";
+import { useT } from "../i18n";
 
 interface ExercisesProps {
   profile: StudentProfile;
@@ -15,6 +16,7 @@ interface ExercisesProps {
 }
 
 export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
+  const t = useT();
   const [completedNow, setCompletedNow] = useState<number[]>([]);
   const toast = useToast();
 
@@ -29,16 +31,19 @@ export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
       .then(() => {
         setCompletedNow((current) => [...current, resourceId]);
         onTracked();
-        toast.success("Atividade marcada como concluída!");
+        toast.success(t("Atividade marcada como concluída!", "Activity marked as completed!"));
       })
-      .catch(() => toast.error("Não foi possível concluir a atividade."));
+      .catch(() => toast.error(t("Não foi possível concluir a atividade.", "Couldn't complete the activity.")));
   };
 
   return (
     <section>
-      <h1 className="text-3xl font-bold text-ink">Atividades práticas</h1>
+      <h1 className="text-3xl font-bold text-ink">{t("Atividades práticas", "Practical activities")}</h1>
       <p className="mt-2 text-muted">
-        Conclua as atividades de cada OVA — a conclusão alimenta os indicadores pedagógicos do EduBot.
+        {t(
+          "Conclua as atividades de cada OVA — a conclusão alimenta os indicadores pedagógicos do EduBot.",
+          "Complete the activities of each OVA — completion feeds EduBot's pedagogical indicators."
+        )}
       </p>
       <div className="mt-6 grid gap-5">
         {activities.map((activity) => {
@@ -56,14 +61,14 @@ export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
                 {done ? (
                   <span className="flex items-center gap-2 rounded-[8px] bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">
                     <CheckCircle2 size={17} />
-                    Concluída
+                    {t("Concluída", "Completed")}
                   </span>
                 ) : (
                   <button
                     onClick={() => complete(activity.resource_id)}
                     className="h-10 rounded-[8px] bg-ink px-4 font-semibold text-white"
                   >
-                    Marcar como concluída
+                    {t("Marcar como concluída", "Mark as completed")}
                   </button>
                 )}
               </div>
@@ -72,7 +77,7 @@ export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
         })}
         {activities.length === 0 && (
           <p className="rounded-[8px] border border-line bg-white p-6 text-muted">
-            Nenhuma atividade prática cadastrada para os OVAs do seu curso.
+            {t("Nenhuma atividade prática cadastrada para os OVAs do seu curso.", "No practical activities registered for your course's OVAs.")}
           </p>
         )}
       </div>
