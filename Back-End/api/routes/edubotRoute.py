@@ -31,6 +31,7 @@ from services.student_context import build_student_profile
 from edubot_agent import get_recommendation
 from edubot_agent.tutor import tutor_reply
 from edubot_agent.external_sources import search_external
+from edubot_agent.coach import coach_message
 
 app_edubot = Blueprint("edubot", __name__)
 
@@ -133,3 +134,23 @@ def edubot_external_resources():
         "competencia": comp.competency_description,
         "resultados": resultados,
     }, default=str), 200
+
+
+# MELHORIA (Roteiro Cena 3) — fala do EduBot (coach) sobre o progresso do aluno,
+# gerada por IA (Bedrock) sob demanda. Se a IA não estiver disponível, devolve
+# message=null e o frontend usa o texto local (determinístico).
+@app_edubot.route("/edubot/coach-message", methods=["GET"])
+@cross_origin()
+@require_auth
+def edubot_coach_message():
+    lang = request.args.get("lang", "pt")
+    try:
+        profile = build_student_profile(g.student)
+    except PeeweeException as err:
+        return json.dumps({"Error": f"{err}"}), 501
+
+    result = coach_message(profile, lang=lang)
+    if not result:
+        return json.dumps({"message": None, "ai": False}), 200
+    text, model_id = result
+    return json.dumps({"message": text, "ai": True, "model_id": model_id}, default=str), 200

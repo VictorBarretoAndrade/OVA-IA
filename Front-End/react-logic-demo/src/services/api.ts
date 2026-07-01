@@ -111,6 +111,10 @@ export interface CompetencyState {
   acertos: number;
   total_questoes: number;
   status: "não iniciada" | "em desenvolvimento" | "desenvolvida";
+  // Desempenho no quiz por competência (vindos de `attempts` no backend)
+  tentativas?: number;
+  erros?: number;
+  taxa_erro?: number | null;
 }
 
 export interface InterventionState {
@@ -198,6 +202,13 @@ export const getMe = () => request<StudentProfile>("/student/me");
 
 export const getEdubotRecommendation = () =>
   request<{ recommendation: Recommendation }>("/edubot/recommendation");
+
+// Fala do EduBot (coach) sobre o progresso, gerada por IA sob demanda (Bedrock).
+// message=null quando a IA não está disponível — o frontend usa o texto local.
+export const getCoachMessage = (lang: string) =>
+  request<{ message: string | null; ai: boolean; model_id?: string }>(
+    `/edubot/coach-message?lang=${lang}`
+  );
 
 // ---------------------------------------------------------------------------
 // MELHORIA (OVA personalizada): agente de tool-use que monta a OVA de reforço

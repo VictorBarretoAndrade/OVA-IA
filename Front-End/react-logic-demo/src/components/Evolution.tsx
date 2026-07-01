@@ -20,6 +20,7 @@ import {
 } from "recharts";
 import { StudentProfile } from "../services/api";
 import { useT } from "../i18n";
+import { PerformanceCoach } from "./PerformanceCoach";
 
 interface EvolutionProps {
   profile: StudentProfile;
@@ -57,7 +58,12 @@ export const Evolution = ({ profile }: EvolutionProps) => {
       <h1 className="text-3xl font-bold text-ink">{t("Evolução do Aluno", "Student Progress")}</h1>
       <p className="mt-2 text-muted">{t("Gráficos gerados a partir dos dados rastreados no backend.", "Charts generated from the data tracked in the backend.")}</p>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-2">
+      {/* Personagem virtualizado do EduBot falando sobre o progresso (Cena 3) */}
+      <div className="mt-6">
+        <PerformanceCoach profile={profile} />
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-2">
         {/* Teia de competências (gráfico radar) — visão do domínio do aluno */}
         <div className="rounded-[8px] border border-line bg-white p-6 shadow-sm xl:col-span-2">
           <h2 className="text-xl font-bold text-ink">{t("Teia de competências", "Competency web")}</h2>
