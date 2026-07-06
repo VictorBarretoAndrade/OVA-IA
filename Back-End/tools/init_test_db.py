@@ -1,26 +1,24 @@
 import sys, os
 
 # Ensure project root (Back-End) is on sys.path for imports
-sys.path.append(os.path.join(os.getcwd(), 'data', 'models'))
-sys.path.append(os.path.join(os.getcwd(), 'data'))
 
-from base import db
-from students import Students
-from courses import Courses
-from subjects import Subjects
-from offerings import Offerings
-from ovas import OVAs
-from competencies import Competencies
-from questions import Questions
-from answers import Answers
-from interactions import Interactions
-from resources import Resources
-from resource_progress import ResourceProgress
-from ova_progress import OVAProgress
-from attempts import Attempts
-from interventions import Interventions
-from personalized_ova import PersonalizedOVA, PersonalizedOVAItem
-from alerts import Alerts
+from edubot.data.models.base import db
+from edubot.data.models.students import Students
+from edubot.data.models.courses import Courses
+from edubot.data.models.subjects import Subjects
+from edubot.data.models.offerings import Offerings
+from edubot.data.models.ovas import OVAs
+from edubot.data.models.competencies import Competencies
+from edubot.data.models.questions import Questions
+from edubot.data.models.answers import Answers
+from edubot.data.models.interactions import Interactions
+from edubot.data.models.resources import Resources
+from edubot.data.models.resource_progress import ResourceProgress
+from edubot.data.models.ova_progress import OVAProgress
+from edubot.data.models.attempts import Attempts
+from edubot.data.models.interventions import Interventions
+from edubot.data.models.personalized_ova import PersonalizedOVA, PersonalizedOVAItem
+from edubot.data.models.alerts import Alerts
 
 
 def init_db():
