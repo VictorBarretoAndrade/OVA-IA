@@ -16,9 +16,8 @@ Convenções da API: o corpo das requisições é o objeto JSON puro (o envelope
 
 import { API_BASE_URL as BASE_URL } from "./config";
 
-// Mesma chave usada pelo frontend clássico (files/js/request.js): como o app
-// React é servido pela MESMA origem do Apache (http://localhost:8010/app/),
-// o localStorage é compartilhado e a sessão vale nos dois frontends.
+// Chaves de sessão do app. `token` era compartilhada com o front clássico
+// (aposentado na Fase 5 — A17); mantida por ser o Bearer que o backend espera.
 const TOKEN_KEY = "token";
 const SESSION_KEY = "edubot.session";
 
@@ -38,14 +37,14 @@ export const getSession = (): Session | null => {
   }
 };
 
+// Chaves legadas que o front clássico gravava; o app novo não as escreve mais
+// (Fase 5 — A17), mas as removemos no logout para limpar sessões antigas.
+const LEGACY_KEYS = ["logged", "is_admin", "course_id", "student_id"];
+
 export const clearSession = () => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(SESSION_KEY);
-  // chaves do frontend clássico (login.html/iframe.html)
-  localStorage.removeItem("logged");
-  localStorage.removeItem("is_admin");
-  localStorage.removeItem("course_id");
-  localStorage.removeItem("student_id");
+  LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
 };
 
 async function request<T>(
@@ -206,12 +205,8 @@ export async function login(ra: string, password: string): Promise<Session> {
   };
   localStorage.setItem(TOKEN_KEY, data.token);
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  // Compatibilidade com o frontend clássico: permite abrir o leitor de OVAs
-  // (iframe.html) já autenticado, pois ambos vivem na mesma origem (Apache)
-  localStorage.setItem("logged", "true");
-  localStorage.setItem("is_admin", JSON.stringify(data.is_admin));
-  localStorage.setItem("course_id", String(data.ids.course_id));
-  localStorage.setItem("student_id", String(data.ids.student_id));
+  // (Fase 5 — A17) As chaves de compatibilidade com o front clássico deixaram
+  // de ser gravadas: o app React é único e resolve tudo via SESSION_KEY/token.
   return session;
 }
 

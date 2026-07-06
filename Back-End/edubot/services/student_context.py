@@ -9,12 +9,11 @@
 # Este dicionário é a ÚNICA entrada do edubot_agent (4.3) e também alimenta o
 # painel de rastreamento (4.4) via GET /student/me. Centralizar a montagem aqui
 # evita que cada rota re-derive as mesmas métricas de formas divergentes.
-import sys, os
-
-
 import datetime
 
 from peewee import fn
+
+from edubot.i18n import tr
 
 from edubot.data.models.students import Students
 from edubot.data.models.courses import Courses
@@ -78,7 +77,7 @@ def _days_without_access(student):
     return (datetime.date.today() - max(dates)).days
 
 
-def _competency_statuses(student):
+def _competency_statuses(student, lang="pt"):
     """Status per competency of the student's course: não iniciada /
     em desenvolvimento / desenvolvida (ratio of correct answers).
 
@@ -125,7 +124,7 @@ def _competency_statuses(student):
             status = "em desenvolvimento"
         statuses.append({
             "competency_id": comp.competency_id,
-            "nome": comp.competency_description,
+            "nome": tr(comp.competency_description, comp.competency_description_en, lang),
             "acertos": correct,
             "total_questoes": total,
             "status": status,
@@ -136,7 +135,7 @@ def _competency_statuses(student):
     return statuses
 
 
-def _resource_state(student, resource, ova_progress_row, has_quiz_attempt):
+def _resource_state(student, resource, ova_progress_row, has_quiz_attempt, lang="pt"):
     """Computes consumption of one resource, regardless of its kind."""
     consumed = False
     perc = 0
@@ -165,7 +164,7 @@ def _resource_state(student, resource, ova_progress_row, has_quiz_attempt):
 
     return {
         "resource_id": resource.resource_id,
-        "titulo": resource.resource_title,
+        "titulo": tr(resource.resource_title, resource.resource_title_en, lang),
         "tipo": resource.resource_type,
         "url": resource.resource_url,
         "media_type": resource.media_type,
@@ -176,8 +175,11 @@ def _resource_state(student, resource, ova_progress_row, has_quiz_attempt):
     }
 
 
-def build_student_profile(student):
-    """Builds the full profile dict for a Students row (the agent's input)."""
+def build_student_profile(student, lang="pt"):
+    """Builds the full profile dict for a Students row (the agent's input).
+
+    `lang` (Fase 4 — A12): nomes de OVA, títulos de recursos e competências são
+    servidos no idioma pedido (fallback PT). Métricas independem do idioma."""
     course = Courses.get_or_none(Courses.course_id == student.course_id)
 
     # --- per-OVA consumption -------------------------------------------------
@@ -204,7 +206,7 @@ def build_student_profile(student):
 
         resources_data = []
         for resource in Resources.select().where(Resources.ova_id == ova.ova_id):
-            state = _resource_state(student, resource, progress, has_quiz_attempt)
+            state = _resource_state(student, resource, progress, has_quiz_attempt, lang)
             resources_data.append(state)
             total_resources += 1
             stats = consumption_by_type.setdefault(
@@ -218,7 +220,7 @@ def build_student_profile(student):
 
         ovas_data.append({
             "ova_id": ova.ova_id,
-            "ova_name": ova.ova_name,
+            "ova_name": tr(ova.ova_name, ova.ova_name_en, lang),
             # link da página HTML do OVA — usado pelo frontend React para abrir
             # o leitor clássico (iframe.html) com o conteúdo de texto
             "link": ova.link,
@@ -291,6 +293,6 @@ def build_student_profile(student):
         },
         "atividades_pendentes": pendentes,
         "ovas": ovas_data,
-        "competencias": _competency_statuses(student),
+        "competencias": _competency_statuses(student, lang),
         "historico_intervencoes": historico
     }
