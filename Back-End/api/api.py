@@ -1,5 +1,8 @@
 # Import the main libraries
-from flask import Flask
+import logging
+
+from flask import Flask, jsonify
+from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 
 # Import the API routes
@@ -22,6 +25,27 @@ from routes.tutorRoute import app_tutor
 # Create the Flask app and configure CORS
 app = Flask(__name__)
 cors = CORS(app)
+
+logger = logging.getLogger("edubot.api")
+
+
+# Error handler global (A10) — respostas de erro coerentes em JSON.
+#
+# Antes, cada rota capturava só PeeweeException e devolvia 501 (Not Implemented);
+# qualquer outro erro (payload malformado, IndexError do envelope [data], etc.)
+# virava um 500 sem corpo. Estes handlers garantem que TODA falha volte como
+# JSON com o status HTTP correto.
+@app.errorhandler(HTTPException)
+def handle_http_exception(err):
+    return jsonify({"error": err.description, "status": err.code}), err.code
+
+
+@app.errorhandler(Exception)
+def handle_unexpected_exception(err):
+    # Erros inesperados: loga o stack trace no servidor, devolve 500 genérico
+    # ao cliente (sem vazar detalhes internos).
+    logger.exception("Erro não tratado na requisição")
+    return jsonify({"error": "Erro interno do servidor", "status": 500}), 500
 
 # Register the API routes as blueprints
 app.register_blueprint(app_login)

@@ -56,7 +56,7 @@ def register_interaction():
             return json.dumps("New interaction registered!"), 200
         # Handle errors and return the error description
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return a message if the HTTP method is not POST
         return "Wrong Request Methods. Only POST Allowed", 405

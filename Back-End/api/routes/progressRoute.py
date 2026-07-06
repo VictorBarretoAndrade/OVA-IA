@@ -60,7 +60,7 @@ def ova_resources(ova_id):
             })
         return json.dumps(resource_list), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 
 # Upserts the per-OVA reading progress (read_time seconds, % scrolled, completed).
@@ -94,7 +94,7 @@ def save_ova_progress():
             progress.save()
         return json.dumps("Progress saved"), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 
 # Upserts the consumption of one resource:
@@ -131,4 +131,4 @@ def save_resource_progress():
             rp.save()
         return json.dumps("Resource progress saved"), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500

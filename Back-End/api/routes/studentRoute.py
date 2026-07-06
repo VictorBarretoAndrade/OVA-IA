@@ -33,7 +33,7 @@ def student_me():
     try:
         return json.dumps(build_student_profile(g.student), default=str), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 # Given a course id, return all the students of this course
 @app_student.route("/student/course/<int:course_id>", methods=["GET"])
@@ -54,7 +54,7 @@ def student_by_course(course_id):
             return json.dumps(student_list)
         # Handle the error by returning the description of the error
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not GET
         return "Wrong Request Methods. Only GET Allowed", 405

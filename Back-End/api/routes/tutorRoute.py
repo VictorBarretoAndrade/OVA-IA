@@ -121,7 +121,7 @@ def tutor_turma():
         alunos.sort(key=lambda a: (-a["alertas_abertos"], a["consumo_percentual"]))
         return json.dumps({"total": len(alunos), "alunos": alunos}, default=str), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 
 @app_tutor.route("/tutor/alerts", methods=["GET"])
@@ -150,7 +150,7 @@ def tutor_alerts():
         } for a in rows]
         return json.dumps({"alertas": out}, default=str), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 
 @app_tutor.route("/tutor/evaluate", methods=["POST"])
@@ -186,4 +186,4 @@ def tutor_evaluate():
             criados += 1
         return json.dumps({"alertas_criados": criados}), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500

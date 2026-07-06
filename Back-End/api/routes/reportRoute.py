@@ -144,4 +144,4 @@ def student_report(student_id):
 
         return json.dumps(result, default=str), 200
     except PeeweeException as err:
-        return json.dumps({'Error': f'{err}'}), 501
+        return json.dumps({'Error': f'{err}'}), 500

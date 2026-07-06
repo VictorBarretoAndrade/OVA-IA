@@ -7,6 +7,7 @@ progresso; qualquer outra URL (upload/S3/local) -> <video> HTML5.
 Reporta onProgress({perc, seconds, completed}) em checkpoints de 10%.
 */
 import { useEffect, useRef, useState } from "react";
+import { useT } from "../../i18n";
 
 const COMPLETED_PERC = 90;
 
@@ -56,6 +57,7 @@ interface VideoPlayerProps {
 export const VideoPlayer = ({ url, mediaType, title, initialPerc, onProgress }: VideoPlayerProps) => {
   const slotRef = useRef<HTMLDivElement>(null);
   const [perc, setPerc] = useState(initialPerc);
+  const t = useT();
   // Checkpoints de 10% — os já alcançados (estado do backend) começam feitos
   const checkpointsRef = useRef<Record<number, boolean>>(
     Object.fromEntries(Array.from({ length: 10 }, (_, i) => [(i + 1) * 10, (i + 1) * 10 <= initialPerc]))
@@ -126,7 +128,7 @@ export const VideoPlayer = ({ url, mediaType, title, initialPerc, onProgress }: 
       <div className="mt-3 h-2 rounded-full bg-slate-100">
         <div className="h-2 rounded-full bg-brand transition-all" style={{ width: `${perc}%` }} />
       </div>
-      <div className="mt-1 text-sm text-muted">{perc}% assistido</div>
+      <div className="mt-1 text-sm text-muted">{perc}% {t("assistido", "watched")}</div>
     </div>
   );
 };

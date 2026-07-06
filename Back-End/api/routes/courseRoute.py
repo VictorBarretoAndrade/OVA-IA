@@ -42,7 +42,7 @@ def get_courses():
             return json.dumps(course_list)
         # Handle errors and return the error description
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return a message if the HTTP method is not GET
         return "Wrong Request Methods. Only GET Allowed", 405
@@ -73,7 +73,7 @@ def get_course_subjects(course_id):
             return json.dumps(subject_list)
         # Handle errors and return the error description
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return a message if the HTTP method is not GET
         return "Wrong Request Methods. Only GET Allowed", 405

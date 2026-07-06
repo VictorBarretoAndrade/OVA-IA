@@ -47,14 +47,31 @@ def edubot_recommendation():
         # 2. Chama o agente (mock Bedrock por enquanto — ver edubot_agent/)
         recommendation = get_recommendation(profile)
 
-        # 3. Persiste como intervenção para compor o histórico
-        Interventions.create(
-            student_id=g.student,
-            date=datetime.date.today(),
-            type=recommendation["tipo"],
-            description=recommendation["mensagem_aluno"],
-            result="pendente"
+        # 3. Persiste como intervenção para compor o histórico — deduplicado (A8).
+        #    O endpoint é um GET consultado a cada clique do aluno; sem dedup,
+        #    cinco cliques criavam cinco intervenções "pendente" iguais poluindo
+        #    o histórico e o próprio perfil que o agente lê. Só cria se ainda não
+        #    houver uma intervenção pendente do mesmo tipo no dia.
+        today = datetime.date.today()
+        already = (
+            Interventions
+            .select()
+            .where(
+                (Interventions.student_id == g.student) &
+                (Interventions.date == today) &
+                (Interventions.type == recommendation["tipo"]) &
+                (Interventions.result == "pendente")
+            )
+            .exists()
         )
+        if not already:
+            Interventions.create(
+                student_id=g.student,
+                date=today,
+                type=recommendation["tipo"],
+                description=recommendation["mensagem_aluno"],
+                result="pendente"
+            )
 
         return json.dumps({
             "recommendation": recommendation,
@@ -67,7 +84,7 @@ def edubot_recommendation():
             }
         }, default=str), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 
 # MELHORIA (Tutor IA por OVA) — chat de tutoria restrito ao conteúdo do OVA.
@@ -147,7 +164,7 @@ def edubot_coach_message():
     try:
         profile = build_student_profile(g.student)
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
     result = coach_message(profile, lang=lang)
     if not result:

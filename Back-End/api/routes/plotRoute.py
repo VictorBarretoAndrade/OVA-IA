@@ -53,7 +53,7 @@ def get_student_plots():
             
             return json.dumps(plot)
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not POST
         return "Wrong Request Methods. Only POST Allowed", 405
@@ -73,7 +73,7 @@ def get_course_plots():
             
             return json.dumps(plot)
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not POST
         return "Wrong Request Methods. Only POST Allowed", 405
@@ -93,7 +93,7 @@ def get_ova_plots():
             
             return json.dumps(plot)
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not POST
         return "Wrong Request Methods. Only POST Allowed", 405
@@ -122,7 +122,7 @@ def get_interaction_plots():
             
             return json.dumps({"num_interactions": student_interactions, "total_interactions": num_questions + ova.num_interactions})
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not POST
         return "Wrong Request Methods. Only POST Allowed", 405

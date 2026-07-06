@@ -55,7 +55,7 @@ def show_all_questions():
             return json.dumps(question_list)
         except PeeweeException as err:
             # Handle the error by returning the description of the error
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not GET
         return "Wrong Request Methods. Only GET Allowed", 405
@@ -96,7 +96,7 @@ def show_ova_questions():
             return json.dumps(question_list)
         except PeeweeException as err:
             # Handle the error by returning the description of the error
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not POST
         return "Wrong Request Methods. Only POST Allowed", 405
@@ -145,7 +145,7 @@ def answer_question():
             return json.dumps({"is_correct": is_correct}), 200
         except PeeweeException as err:
             # Handle the error by returning the description of the error
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return this if the HTTP method is not POST
         return "Wrong Request Methods. Only POST Allowed", 405

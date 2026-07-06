@@ -80,6 +80,14 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ova.ova_id, ova.link, ova.ova_name, lang]);
 
+  // Registra a abertura do OVA como interação (A2). O cálculo de dias_sem_acesso
+  // deriva do MAX(interaction_date), mas antes só era alimentado ao abrir o
+  // assistente / clicar em carrossel/acordeão — abrir o OVA (ação central do
+  // estudo) não gerava sinal. Agora toda sessão de leitura marca presença.
+  useEffect(() => {
+    registerInteraction(studentId, ova.ova_id, "ova_opened").catch(() => undefined);
+  }, [ova.ova_id, studentId]);
+
   // Rastreio de leitura (espelha ova.js): acumula tempo e o scroll máximo e
   // persiste periodicamente em /progress/ova. No fim (voltar/desmontar) faz um
   // último sync e atualiza o perfil para o dashboard refletir o progresso.

@@ -91,7 +91,7 @@ def create_personalized_ova():
             "model_id": result.get("model_id"),
         }, default=str), 201
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 
 @app_personalized_ova.route("/personalized-ova", methods=["GET"])
@@ -114,7 +114,7 @@ def list_personalized_ovas():
             })
         return json.dumps(ovas, default=str), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500
 
 
 @app_personalized_ova.route("/personalized-ova/<int:pova_id>", methods=["GET"])
@@ -188,4 +188,4 @@ def get_personalized_ova(pova_id):
             "questoes": questoes,
         }, default=str), 200
     except PeeweeException as err:
-        return json.dumps({"Error": f"{err}"}), 501
+        return json.dumps({"Error": f"{err}"}), 500

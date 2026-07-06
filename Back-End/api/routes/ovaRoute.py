@@ -52,7 +52,7 @@ def show_course_OVAs(course_id):
             return json.dumps(result)
         # Handle errors and return the error description
         except PeeweeException as err:
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return a message if the HTTP method is not GET
         return "Wrong Request Methods. Only GET Allowed", 405
@@ -77,7 +77,7 @@ def show_subject_OVAs(subject_id):
             return json.dumps(ova_list)
         except PeeweeException as err:
             # Handle errors and return the error description
-            return json.dumps({"Error": f"{err}"}), 501
+            return json.dumps({"Error": f"{err}"}), 500
     else:
         # Return a message if the HTTP method is not GET
         return "Wrong Request Methods. Only GET Allowed", 405

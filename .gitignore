@@ -7,8 +7,9 @@ __pycache__/
 dev_ova.db
 Back-End/dev_ova.db
 
-# Ambiente virtual Python local (Windows)
+# Ambiente virtual Python local (Windows e Linux)
 .venv/
+venv/
 
 # Variáveis de ambiente locais do backend (use os .env.example como modelo)
 .env
@@ -37,3 +38,12 @@ Front-End/react-logic-demo/dist/
 # Variáveis de ambiente locais do frontend (use .env.example como modelo)
 Front-End/react-logic-demo/.env
 Front-End/react-logic-demo/.env.local
+
+# Artefatos de documentação/roteiro que não pertencem ao versionamento (A11)
+*.docx
+/fluxograma_plataforma.png
+/platform_flowchart_en.png
+/modelo-EER.png
+
+# OVAs gerados (nunca semeados; fonte de conteúdo fora do runtime) (A11)
+/ovas-generation/
