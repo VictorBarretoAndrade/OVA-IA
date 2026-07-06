@@ -167,3 +167,54 @@ def edubot_coach_message():
         return json.dumps({"message": None, "ai": False}), 200
     text, model_id = result
     return json.dumps({"message": text, "ai": True, "model_id": model_id}, default=str), 200
+
+
+# MELHORIA (A13 — proatividade) — intervenções NÃO LIDAS do aluno logado.
+#
+#   GET  /edubot/interventions        -> intervenções pendentes (o EduBot "falou
+#                                        primeiro"), para o dashboard exibir
+#   POST /edubot/intervention/ack     -> marca uma intervenção como lida
+#
+# São as intervenções criadas pelos gatilhos por evento e pela varredura
+# agendada; o aluno as vê no dashboard sem precisar pedir uma recomendação.
+@app_edubot.route("/edubot/interventions", methods=["GET"])
+@cross_origin()
+@require_auth
+def edubot_interventions():
+    try:
+        rows = (Interventions
+                .select()
+                .where((Interventions.student_id == g.student) &
+                       (Interventions.result == "pendente"))
+                .order_by(Interventions.date.desc())
+                .limit(10))
+        out = [{
+            "intervention_id": it.intervention_id,
+            "data": str(it.date),
+            "tipo": it.type,
+            "descricao": it.description,
+            "resultado": it.result,
+        } for it in rows]
+        return json.dumps({"interventions": out}, default=str), 200
+    except PeeweeException as err:
+        return json.dumps({"Error": f"{err}"}), 500
+
+
+@app_edubot.route("/edubot/intervention/ack", methods=["POST"])
+@cross_origin()
+@require_auth
+def edubot_intervention_ack():
+    data = get_payload()
+    intervention_id = data.get("intervention_id")
+    try:
+        # Só o dono pode marcar como lida (aluno vem do token).
+        it = Interventions.get_or_none(
+            (Interventions.intervention_id == intervention_id) &
+            (Interventions.student_id == g.student))
+        if it is None:
+            return json.dumps({"Error": "Intervenção não encontrada"}), 404
+        it.result = "lida"
+        it.save()
+        return json.dumps({"ok": True, "intervention_id": intervention_id}), 200
+    except PeeweeException as err:
+        return json.dumps({"Error": f"{err}"}), 500

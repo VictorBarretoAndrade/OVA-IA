@@ -11,10 +11,6 @@
 # Todas exigem o token emitido no login (@require_auth) — o aluno é resolvido
 # do token (g.student), nunca do payload, para impedir escrita em nome de outro.
 
-# Add parent directories to the path to enable imports from submodules
-import sys, os
-
-
 from flask import Blueprint, request, g
 from flask_cors import cross_origin
 from edubot.api.http import get_payload
@@ -28,6 +24,7 @@ from edubot.data.models.ova_progress import OVAProgress
 from edubot.data.models.resource_progress import ResourceProgress
 
 from edubot.api.auth import require_auth
+from edubot.services.proactivity import trigger_evaluation
 
 app_progress = Blueprint("progress", __name__)
 
@@ -84,6 +81,7 @@ def save_ova_progress():
 
         progress = OVAProgress.get_or_none(
             (OVAProgress.student_id == g.student) & (OVAProgress.ova_id == ova))
+        was_completed = bool(progress.completed) if progress else False
         # delta é o caminho novo; read_time absoluto é o legado
         seconds_delta = data.get("seconds_delta")
         seconds_delta = max(0, int(seconds_delta)) if seconds_delta is not None else None
@@ -108,6 +106,14 @@ def save_ova_progress():
             progress.completed = progress.completed or completed
             progress.last_access = datetime.datetime.now()
             progress.save()
+
+        # A13 — proatividade por evento: ao CONCLUIR um OVA (transição), o agente
+        # reavalia o aluno e pode empurrar o próximo passo (ex.: quiz pendente,
+        # trilha mínima) sem esperar clique. Só na transição, não a cada delta,
+        # para não repetir a montagem cara do perfil (A9).
+        now_completed = completed or perc_scrolled >= 90
+        if now_completed and not was_completed:
+            trigger_evaluation(g.student)
         return json.dumps("Progress saved"), 200
     except PeeweeException as err:
         return json.dumps({"Error": f"{err}"}), 500

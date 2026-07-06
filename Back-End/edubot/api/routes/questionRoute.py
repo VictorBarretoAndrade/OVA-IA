@@ -1,7 +1,3 @@
-# Add parent directories to the path to enable imports from submodules
-import sys, os
-
-
 # Import necessary libraries
 from flask import Blueprint, request, g
 from flask_cors import cross_origin
@@ -15,6 +11,7 @@ from edubot.data.models.answers import Answers
 from edubot.data.models.attempts import Attempts
 
 from edubot.api.auth import require_auth
+from edubot.services.proactivity import trigger_evaluation
 
 # Create a route blueprint as a reusable component
 app_question = Blueprint("question", __name__)
@@ -151,6 +148,14 @@ def answer_question():
                     student_id = student,
                     question_id = question
                 )
+
+            # A13 — proatividade por evento: um erro é o sinal de risco. O agente
+            # avalia as regras do aluno na hora e, se for o caso, cria uma
+            # intervenção/alerta automaticamente (o EduBot "fala primeiro"),
+            # sem esperar o aluno clicar em "recomendação". Best-effort: nunca
+            # quebra a correção do quiz.
+            if not is_correct:
+                trigger_evaluation(student)
 
             # The frontend uses this flag to show "Correct!"/"Incorrect."
             return json.dumps({"is_correct": is_correct}), 200

@@ -1,0 +1,71 @@
+"""A13 — proatividade: o EduBot age por evento, sem clique do aluno."""
+import json
+
+from edubot.data.models.interventions import Interventions
+
+
+def _answer(client, headers, qid, selected):
+    return client.post("/question/answer", headers=headers,
+                       data=json.dumps({"question_id": qid, "selected": selected}))
+
+
+def _pending(student_id=1):
+    return (Interventions
+            .select()
+            .where((Interventions.student_id == student_id) &
+                   (Interventions.result == "pendente"))
+            .count())
+
+
+def test_wrong_answer_creates_intervention_without_click(client, auth):
+    assert _pending(1) == 0
+    _answer(client, auth(1), 1, "a")  # gabarito é "b" -> errada
+    # O agente avaliou as regras na hora e materializou uma intervenção.
+    assert _pending(1) >= 1
+
+
+def test_correct_only_answer_does_not_trigger(client, auth):
+    _answer(client, auth(1), 1, "b")  # correta -> sem gatilho de risco
+    assert _pending(1) == 0
+
+
+def test_ova_completion_triggers_evaluation(client, auth):
+    r = client.post("/progress/ova", headers=auth(1),
+                    data=json.dumps({"ova_id": 1, "seconds_delta": 30,
+                                     "perc_scrolled": 95, "completed": True}))
+    assert r.status_code == 200
+    assert _pending(1) >= 1
+
+
+def test_interventions_endpoint_lists_and_ack(client, auth):
+    _answer(client, auth(1), 1, "a")  # cria intervenção
+    r = client.get("/edubot/interventions", headers=auth(1))
+    body = json.loads(r.data.decode())
+    assert len(body["interventions"]) >= 1
+    iid = body["interventions"][0]["intervention_id"]
+
+    # marca como lida -> some da lista de não lidas
+    r = client.post("/edubot/intervention/ack", headers=auth(1),
+                    data=json.dumps({"intervention_id": iid}))
+    assert r.status_code == 200
+    r = client.get("/edubot/interventions", headers=auth(1))
+    ids = [i["intervention_id"] for i in json.loads(r.data.decode())["interventions"]]
+    assert iid not in ids
+
+
+def test_ack_only_own_intervention(client, auth):
+    _answer(client, auth(1), 1, "a")
+    iid = json.loads(client.get("/edubot/interventions", headers=auth(1)).data.decode())["interventions"][0]["intervention_id"]
+    # aluno 2 não pode marcar a intervenção do aluno 1
+    r = client.post("/edubot/intervention/ack", headers=auth(2),
+                    data=json.dumps({"intervention_id": iid}))
+    assert r.status_code == 404
+
+
+def test_dedup_no_duplicate_pending_same_type(client, auth):
+    _answer(client, auth(1), 1, "a")
+    _answer(client, auth(1), 2, "b")  # gabarito q2 é "a" -> outra errada
+    # Mesmo com dois erros, não deve haver duas intervenções pendentes do mesmo tipo/dia.
+    types = [it.type for it in Interventions.select().where(
+        (Interventions.student_id == 1) & (Interventions.result == "pendente"))]
+    assert len(types) == len(set(types))

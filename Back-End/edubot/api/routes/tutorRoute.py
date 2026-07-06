@@ -22,8 +22,7 @@ from edubot.data.models.attempts import Attempts
 from edubot.data.models.alerts import Alerts
 
 from edubot.api.auth import require_auth
-from edubot.services.student_context import build_student_profile
-from edubot.agent import get_recommendation
+from edubot.services.proactivity import evaluate_student
 
 app_tutor = Blueprint("tutor", __name__)
 
@@ -155,30 +154,12 @@ def tutor_evaluate():
     if not _is_tutor():
         return json.dumps({"Error": "Acesso restrito a tutores."}), 403
     try:
+        # Mesma avaliação usada pelos gatilhos por evento (fonte única): perfil
+        # -> regras -> intervenção/alerta deduplicados. Aqui varre a turma.
         criados = 0
         for student in _turma_students():
-            profile = build_student_profile(student)
-            rec = get_recommendation(profile)
-            if rec.get("prioridade") not in ("alta", "media"):
-                continue
-            # Evita duplicar: só cria se não houver alerta ABERTO do mesmo tipo
-            ja_existe = (Alerts
-                         .select()
-                         .where((Alerts.student_id == student) &
-                                (Alerts.type == rec["tipo"]) &
-                                (Alerts.read == False))
-                         .exists())
-            if ja_existe:
-                continue
-            from edubot.data.models.interventions import Interventions
-            Interventions.create(
-                student_id=student, date=datetime.date.today(),
-                type=rec["tipo"], description=rec["mensagem_aluno"], result="pendente")
-            Alerts.create(
-                student_id=student, type=rec["tipo"],
-                message=f"{student.student_name}: {rec['titulo']}",
-                severity=rec["prioridade"], created_at=datetime.datetime.now(), read=False)
-            criados += 1
+            if evaluate_student(student) is not None:
+                criados += 1
         return json.dumps({"alertas_criados": criados}), 200
     except PeeweeException as err:
         return json.dumps({"Error": f"{err}"}), 500
