@@ -4,17 +4,88 @@ nome/curso do aluno, consumo de recursos, taxa de erro do quiz, dias sem
 acesso, formato preferido e competências com status do backend.
 Layout e identidade visual do protótipo Lovable preservados.
 */
-import { Bell, Code2, Timer, Trophy, ClipboardCheck, TrendingUp } from "lucide-react";
+import { Bell, Code2, Timer, Trophy, ClipboardCheck, TrendingUp, Sparkles, X } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
-import { StudentProfile } from "../services/api";
+import { useEffect, useState } from "react";
+import { PolarAngleAxis, RadialBar, RadialBarChart, ResponsiveContainer } from "recharts";
+import { StudentProfile, UnreadIntervention, getInterventions, ackIntervention } from "../services/api";
 import { useT } from "../i18n";
 import { useContentT } from "../services/contentDict";
 
 interface DashboardProps {
   profile: StudentProfile;
   onOpenContent: () => void;
+  onOpenReforco: () => void;
 }
+
+// A13 — Caixa de entrada proativa: intervenções que o EduBot criou sozinho
+// (pós-quiz, conclusão de OVA, varredura agendada). O aluno vê sem pedir e pode
+// agir (gerar trilha de reforço) ou dispensar.
+const EduBotInbox = ({ onOpenReforco }: { onOpenReforco: () => void }) => {
+  const t = useT();
+  const [items, setItems] = useState<UnreadIntervention[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    getInterventions()
+      .then((r) => active && setItems(r.interventions))
+      .catch(() => active && setItems([]));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const dismiss = (id: number) => {
+    setItems((cur) => cur.filter((i) => i.intervention_id !== id));
+    ackIntervention(id).catch(() => undefined);
+  };
+
+  if (items.length === 0) return null;
+
+  return (
+    <div className="rounded-[8px] border border-brand/30 bg-indigo-50/60 p-6 shadow-soft">
+      <h3 className="flex items-center gap-2 text-lg font-bold text-brand">
+        <Sparkles size={20} /> {t("O EduBot tem recomendações para você", "EduBot has recommendations for you")}
+      </h3>
+      <div className="mt-4 space-y-3">
+        {items.map((item) => (
+          <div key={item.intervention_id} className="rounded-[8px] border border-line bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <span className="text-xs font-bold uppercase tracking-wide text-muted">{item.tipo}</span>
+                {item.descricao && <p className="mt-1 text-sm text-slate-700">{item.descricao}</p>}
+              </div>
+              <button
+                onClick={() => dismiss(item.intervention_id)}
+                className="shrink-0 rounded-[8px] p-1.5 text-muted transition hover:bg-slate-100"
+                aria-label={t("Marcar como lida", "Mark as read")}
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  dismiss(item.intervention_id);
+                  onOpenReforco();
+                }}
+                className="h-10 rounded-[8px] bg-brand px-4 text-sm font-semibold text-white transition hover:bg-indigo-600"
+              >
+                {t("Gerar minha trilha de reforço", "Generate my reinforcement track")}
+              </button>
+              <button
+                onClick={() => dismiss(item.intervention_id)}
+                className="h-10 rounded-[8px] border border-line bg-white px-4 text-sm font-semibold text-muted transition hover:bg-slate-50"
+              >
+                {t("Dispensar", "Dismiss")}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const Metric = ({ label, value, icon: Icon }: { label: string; value: string; icon: LucideIcon }) => (
   <div className="rounded-[8px] border border-line bg-white p-5 shadow-sm">
@@ -32,7 +103,7 @@ const statusColor: Record<string, string> = {
   "não iniciada": "bg-slate-300"
 };
 
-export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
+export const Dashboard = ({ profile, onOpenContent, onOpenReforco }: DashboardProps) => {
   const t = useT();
   const ct = useContentT();
   const progresso = profile.recursos.percentual_consumido;
@@ -50,6 +121,9 @@ export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
         <p className="text-lg text-muted">{t("Dashboard do Aluno", "Student Dashboard")}</p>
         <h1 className="mt-1 text-4xl font-bold text-ink">{profile.estudante.nome}</h1>
       </div>
+
+      {/* A13 — o EduBot "fala primeiro": recomendações não lidas, com ação */}
+      <EduBotInbox onOpenReforco={onOpenReforco} />
 
       <div className="grid gap-6 xl:grid-cols-[1.25fr_0.75fr]">
         <div className="overflow-hidden rounded-[8px] border border-line bg-white shadow-soft">
@@ -93,7 +167,11 @@ export const Dashboard = ({ profile, onOpenContent }: DashboardProps) => {
           <div className="relative mt-4 h-56">
             <ResponsiveContainer>
               <RadialBarChart innerRadius="68%" outerRadius="95%" data={radialData} startAngle={90} endAngle={-270}>
-                <RadialBar dataKey="value" cornerRadius={8} background />
+                {/* Fixa a escala em 0–100 para o arco ser proporcional à % real
+                    (sem isso o Recharts usa o próprio valor como máximo e enche
+                    a volta toda mesmo com 20%). */}
+                <PolarAngleAxis type="number" domain={[0, 100]} angleAxisId={0} tick={false} />
+                <RadialBar dataKey="value" angleAxisId={0} cornerRadius={8} background />
               </RadialBarChart>
             </ResponsiveContainer>
             {/* Sobreposição centralizada no donut (centro exato, nos dois eixos) */}

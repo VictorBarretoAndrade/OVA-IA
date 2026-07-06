@@ -120,7 +120,13 @@ const App = () => {
     if (activeView === "evolution") return <Evolution profile={profile} />;
     if (activeView === "tutor") return <TutorPanel />;
     if (activeView === "report") return <Report profile={profile} onTracked={refreshProfile} />;
-    return <Dashboard profile={profile} onOpenContent={() => changeView("contents")} />;
+    return (
+      <Dashboard
+        profile={profile}
+        onOpenContent={() => changeView("contents")}
+        onOpenReforco={() => changeView("reforco")}
+      />
+    );
   };
 
   return (

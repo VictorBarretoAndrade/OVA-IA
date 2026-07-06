@@ -212,6 +212,26 @@ export const getMe = () => request<StudentProfile>("/student/me");
 export const getEdubotRecommendation = () =>
   request<{ recommendation: Recommendation }>("/edubot/recommendation");
 
+// A13 — proatividade: intervenções NÃO LIDAS que o EduBot criou por conta
+// própria (pós-quiz, conclusão de OVA, varredura agendada). O dashboard as
+// exibe para o aluno; `ack` marca como lida.
+export interface UnreadIntervention {
+  intervention_id: number;
+  data: string;
+  tipo: string;
+  descricao: string | null;
+  resultado: string | null;
+}
+
+export const getInterventions = () =>
+  request<{ interventions: UnreadIntervention[] }>("/edubot/interventions");
+
+export const ackIntervention = (interventionId: number) =>
+  request<{ ok: boolean }>("/edubot/intervention/ack", {
+    method: "POST",
+    body: { intervention_id: interventionId }
+  });
+
 // Fala do EduBot (coach) sobre o progresso, gerada por IA sob demanda (Bedrock).
 // message=null quando a IA não está disponível — o frontend usa o texto local.
 export const getCoachMessage = (lang: string) =>
