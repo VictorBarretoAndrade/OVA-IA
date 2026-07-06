@@ -31,8 +31,17 @@ const ViewFallback = () => (
   </div>
 );
 
+// Fase 5 (A17): URLs navegáveis por hash (#/dashboard, #/quiz...). HashRouting
+// dispensa reescrita no Apache (o app é servido em subpath /app/) e dá botão
+// voltar/avançar + links compartilháveis. As views válidas espelham a Sidebar.
+const KNOWN_VIEWS = ["dashboard", "contents", "exercises", "quiz", "reforco", "evolution", "report", "tutor"];
+const viewFromHash = () => {
+  const raw = window.location.hash.replace(/^#\/?/, "");
+  return KNOWN_VIEWS.includes(raw) ? raw : "dashboard";
+};
+
 const App = () => {
-  const [activeView, setActiveView] = useState("dashboard");
+  const [activeView, setActiveView] = useState<string>(() => viewFromHash());
   const [session, setSession] = useState<Session | null>(() => (getToken() ? getSession() : null));
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,13 +80,31 @@ const App = () => {
     setProfile(null);
     setReaderOva(null);
     setActiveView("dashboard");
+    window.location.hash = "#/dashboard";
   };
 
-  // Troca de aba pela sidebar/topbar sempre fecha o leitor de OVA aberto.
-  const changeView = (view: string) => {
+  // Troca de aba pela sidebar/topbar: fecha o leitor de OVA e reflete na URL
+  // (hash). Fecha o leitor diretamente para cobrir o caso de reabrir a mesma
+  // aba onde o OVA estava aberto (o hash não mudaria e não dispararia o evento).
+  const changeView = useCallback((view: string) => {
     setReaderOva(null);
     setActiveView(view);
-  };
+    if (window.location.hash !== `#/${view}`) window.location.hash = `#/${view}`;
+  }, []);
+
+  // Sincroniza com o botão voltar/avançar do navegador e normaliza o hash
+  // inicial para uma URL compartilhável.
+  useEffect(() => {
+    const onHashChange = () => {
+      setReaderOva(null);
+      setActiveView(viewFromHash());
+    };
+    window.addEventListener("hashchange", onHashChange);
+    if (!window.location.hash) {
+      window.history.replaceState(null, "", `#/${viewFromHash()}`);
+    }
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   // Abre um OVA no leitor nativo (chamado pela Área de Conteúdo)
   const openOva = (ova: OvaState) => {
