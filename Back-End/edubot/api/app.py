@@ -11,7 +11,6 @@ from edubot.api.routes.ovaRoute import app_ova
 from edubot.api.routes.courseRoute import app_course
 from edubot.api.routes.interactionRoute import app_interaction
 from edubot.api.routes.studentRoute import app_student
-from edubot.api.routes.plotRoute import app_plot
 from edubot.api.routes.questionRoute import app_question
 # MELHORIA (4.1/4.2/4.3): rastreamento de consumo e agente EduBot
 from edubot.api.routes.progressRoute import app_progress
@@ -52,7 +51,6 @@ app.register_blueprint(app_ova)
 app.register_blueprint(app_course)
 app.register_blueprint(app_interaction)
 app.register_blueprint(app_student)
-app.register_blueprint(app_plot)
 app.register_blueprint(app_question)
 app.register_blueprint(app_progress)
 app.register_blueprint(app_edubot)
