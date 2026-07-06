@@ -83,10 +83,13 @@ def save_ova_progress():
             (OVAProgress.student_id == g.student) & (OVAProgress.ova_id == ova))
         was_completed = bool(progress.completed) if progress else False
         # delta é o caminho novo; read_time absoluto é o legado
-        seconds_delta = data.get("seconds_delta")
-        seconds_delta = max(0, int(seconds_delta)) if seconds_delta is not None else None
-        read_time_abs = int(data.get("read_time", 0) or 0)
-        perc_scrolled = min(100, int(data.get("perc_scrolled", 0) or 0))
+        try:
+            seconds_delta = data.get("seconds_delta")
+            seconds_delta = max(0, int(seconds_delta)) if seconds_delta is not None else None
+            read_time_abs = int(data.get("read_time", 0) or 0)
+            perc_scrolled = min(100, int(data.get("perc_scrolled", 0) or 0))
+        except (TypeError, ValueError):
+            return json.dumps({"Error": "Campos numéricos inválidos"}), 400
         completed = bool(data.get("completed", False))
 
         if progress is None:

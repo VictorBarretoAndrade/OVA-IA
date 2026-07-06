@@ -6,23 +6,22 @@
 #                            intervenções e alertas para alunos em risco
 #
 # Todas exigem token (@require_auth) E papel de tutor/admin (g.student.role).
-import sys, os
-
-
 from flask import Blueprint, g
 from flask_cors import cross_origin
 from peewee import PeeweeException, fn
 import json
-import datetime
 
 from edubot.data.models.students import Students
-from edubot.data.models.interactions import Interactions
 from edubot.data.models.ova_progress import OVAProgress
 from edubot.data.models.attempts import Attempts
 from edubot.data.models.alerts import Alerts
 
 from edubot.api.auth import require_auth
 from edubot.services.proactivity import evaluate_student, active_student_ids
+# A15: inatividade vem da fonte única (multi-sinal). A cópia local antiga só
+# olhava `interactions` — um aluno que lia e respondia quiz todo dia aparecia
+# como "inativo" no painel do tutor.
+from edubot.services.student_context import _days_without_access
 
 app_tutor = Blueprint("tutor", __name__)
 
@@ -47,20 +46,6 @@ def _turma_students():
                     (Students.role == "aluno"))
              .limit(MAX_TURMA))
     return list(query)
-
-
-def _days_without_access(student):
-    last = (Interactions
-            .select(fn.MAX(Interactions.interaction_date))
-            .where(Interactions.student_id == student)
-            .scalar())
-    if not last:
-        return None
-    if isinstance(last, str):
-        last = datetime.date.fromisoformat(last.replace("/", "-"))
-    if isinstance(last, datetime.datetime):
-        last = last.date()
-    return (datetime.date.today() - last).days
 
 
 def _student_summary(student):

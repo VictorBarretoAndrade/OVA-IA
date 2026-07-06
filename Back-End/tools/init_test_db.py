@@ -1,6 +1,10 @@
 import sys, os
 
-# Ensure project root (Back-End) is on sys.path for imports
+# Bootstrap de SCRIPT (não é o padrão do pacote): executado como
+# `python tools/init_test_db.py`, o Python coloca tools/ no sys.path — não o
+# Back-End/ — e o pacote `edubot` não resolveria. Este insert garante a raiz
+# do pacote no path; rodando como módulo (`python -m tools.init_test_db`) é inócuo.
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from edubot.data.models.base import db
 from edubot.data.models.students import Students

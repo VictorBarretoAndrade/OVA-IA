@@ -77,8 +77,22 @@ def evaluate_student(student, *, create_alert=True):
 def trigger_evaluation(student):
     """Versão best-effort para o caminho de escrita (pós-quiz/progresso): nunca
     quebra a requisição principal se a avaliação falhar. Retorna a recomendação
-    ou None."""
+    ou None.
+
+    Guard de custo (A9): montar o perfil é caro (N+1); um quiz com N erros
+    dispararia N avaliações na mesma submissão. Se o aluno já tem uma
+    intervenção pendente criada HOJE, o gatilho por evento pula — ele já foi
+    avisado; a varredura agendada e o /tutor/evaluate continuam avaliando
+    por completo."""
     try:
+        already_notified_today = (Interventions
+                                  .select()
+                                  .where((Interventions.student_id == student) &
+                                         (Interventions.date == datetime.date.today()) &
+                                         (Interventions.result == "pendente"))
+                                  .exists())
+        if already_notified_today:
+            return None
         return evaluate_student(student)
     except Exception:
         logger.exception("Falha ao avaliar proatividade do aluno %s",

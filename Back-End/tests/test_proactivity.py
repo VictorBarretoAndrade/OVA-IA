@@ -90,3 +90,33 @@ def test_scheduler_off_by_default(monkeypatch):
     scheduler._scheduler = None
     # Sem EDUBOT_SCHEDULER=on, não inicia nada (não roda em import/teste).
     assert scheduler.start_scheduler() is None
+
+
+def test_trigger_guard_skips_when_already_notified_today(client, auth, seeded_db):
+    # Guard de custo (A9): com intervenção pendente de hoje, o gatilho por
+    # evento não remonta o perfil (retorna None sem avaliar).
+    from edubot.data.models.students import Students
+    from edubot.services.proactivity import trigger_evaluation
+    _answer(client, auth(1), 1, "a")          # primeiro erro -> cria pendente
+    before = _pending(1)
+    assert trigger_evaluation(Students.get_by_id(1)) is None
+    assert _pending(1) == before
+
+
+def test_tutor_turma_uses_multisignal_inactivity(client, auth):
+    import datetime as dt
+    from edubot.data.models.ova_progress import OVAProgress
+    # Aluno 1 só tem leitura (sem linhas em `interactions`).
+    OVAProgress.create(student_id=1, ova_id=1, read_time=60, perc_scrolled=50,
+                      completed=False, last_access=dt.datetime.now())
+    r = client.get("/tutor/turma", headers=auth(9))  # aluno 9 = tutor
+    turma = json.loads(r.data.decode())["alunos"]
+    aluno1 = next(a for a in turma if a["student_id"] == 1)
+    # A cópia antiga (só interactions) devolveria None; multi-sinal devolve 0.
+    assert aluno1["dias_sem_acesso"] == 0
+
+
+def test_progress_invalid_numeric_returns_400(client, auth):
+    r = client.post("/progress/ova", headers=auth(1),
+                    data=json.dumps({"ova_id": 1, "seconds_delta": "abc"}))
+    assert r.status_code == 400
