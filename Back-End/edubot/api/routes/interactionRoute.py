@@ -5,6 +5,7 @@ import sys, os
 # Import necessary libraries
 from flask import Blueprint, request, g
 from flask_cors import cross_origin
+from edubot.api.http import get_payload
 from peewee import PeeweeException # ORM library
 import json
 import datetime
@@ -28,7 +29,7 @@ app_interaction = Blueprint("interaction", __name__)
 def register_interaction():
     try:
         # Retrieve the JSON payload sent in the request
-        interaction_data = request.get_json()[0]
+        interaction_data = get_payload()
     except (TypeError, IndexError, KeyError):
         return json.dumps({"Error": "Invalid payload"}), 400
 

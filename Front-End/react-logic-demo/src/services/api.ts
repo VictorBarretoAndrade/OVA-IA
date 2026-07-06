@@ -10,8 +10,8 @@ Este módulo liga o frontend React (feito no Lovable) ao backend real:
   - POST /question/answer     -> correção server-side (B5)
   - GET  /edubot/recommendation -> agente EduBot (4.3)
 
-Convenções herdadas da API: o corpo das requisições é um array com um único
-objeto ([data]) e o token vai no header Authorization: Bearer.
+Convenções da API: o corpo das requisições é o objeto JSON puro (o envelope
+[data] legado foi aposentado — A16) e o token vai no header Authorization: Bearer.
 */
 
 import { API_BASE_URL as BASE_URL } from "./config";
@@ -63,8 +63,10 @@ async function request<T>(
     // flush final do rastreio de leitura). Diferente do navigator.sendBeacon,
     // o fetch keepalive mantém o header Authorization (aluno vem do token).
     keepalive: options.keepalive,
-    // A API espera o payload embrulhado em um array (convenção do projeto)
-    body: options.body !== undefined ? JSON.stringify([options.body]) : undefined
+    // Contrato novo (A16): payload é o objeto JSON puro. O envelope [data]
+    // (herança do front jQuery) foi aposentado; o backend ainda o aceita por
+    // compatibilidade até o legado sair (Fase 5).
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined
   });
 
   if (response.status === 401) {

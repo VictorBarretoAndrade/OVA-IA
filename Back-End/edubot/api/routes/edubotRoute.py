@@ -13,6 +13,7 @@ import sys, os
 
 from flask import Blueprint, request, g
 from flask_cors import cross_origin
+from edubot.api.http import get_payload
 from peewee import PeeweeException
 import json
 import datetime
@@ -95,7 +96,7 @@ def edubot_recommendation():
 @require_auth
 def edubot_tutor_chat():
     try:
-        data = request.get_json()[0]
+        data = get_payload()
     except (TypeError, IndexError, KeyError):
         return json.dumps({"Error": "Invalid payload"}), 400
 

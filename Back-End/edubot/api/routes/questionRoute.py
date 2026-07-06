@@ -5,6 +5,7 @@ import sys, os
 # Import necessary libraries
 from flask import Blueprint, request, g
 from flask_cors import cross_origin
+from edubot.api.http import get_payload
 from peewee import PeeweeException # ORM library
 import json
 
@@ -67,7 +68,7 @@ def show_all_questions():
 def show_ova_questions():
     if request.method == "POST":
         try:
-            question_data = request.get_json()[0]
+            question_data = get_payload()
             # Get all the questions of the given OVA
             questions = Questions.select().where(Questions.ova_id == question_data["ova_id"])
             questions_ids = [question.question_id for question in questions]
@@ -110,7 +111,7 @@ def show_ova_questions():
 def answer_question():
     if request.method == 'POST':
         try:
-            answer_data = request.get_json()[0]
+            answer_data = get_payload()
 
             student = g.student  # A3: do token, não do payload
             question = Questions.select().where(Questions.question_id == answer_data["question_id"]).first()

@@ -17,6 +17,7 @@ import sys, os
 
 from flask import Blueprint, request, g
 from flask_cors import cross_origin
+from edubot.api.http import get_payload
 from peewee import PeeweeException
 import json
 import datetime
@@ -76,7 +77,7 @@ def ova_resources(ova_id):
 @require_auth
 def save_ova_progress():
     try:
-        data = request.get_json()[0]
+        data = get_payload()
         ova = OVAs.get_or_none(OVAs.ova_id == data["ova_id"])
         if ova is None:
             return json.dumps({"Error": "Unknown ova_id"}), 400
@@ -121,7 +122,7 @@ def save_ova_progress():
 @require_auth
 def save_resource_progress():
     try:
-        data = request.get_json()[0]
+        data = get_payload()
         resource = Resources.get_or_none(Resources.resource_id == data["resource_id"])
         if resource is None:
             return json.dumps({"Error": "Unknown resource_id"}), 400

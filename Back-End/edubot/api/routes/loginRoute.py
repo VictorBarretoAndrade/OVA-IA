@@ -5,6 +5,7 @@ import sys, os
 # Import necessary libraries
 from flask import Blueprint, request
 from flask_cors import cross_origin
+from edubot.api.http import get_payload
 from peewee import PeeweeException # ORM library
 import json
 
@@ -26,7 +27,7 @@ def login():
     if request.method == "POST":
         try:
             # Retrieve the JSON payload sent by the front-end
-            login_data = request.get_json()[0]
+            login_data = get_payload()
             
             # Retrieve the student trying to log in
             student = Students.select().where(Students.ra == login_data["ra"]).first()

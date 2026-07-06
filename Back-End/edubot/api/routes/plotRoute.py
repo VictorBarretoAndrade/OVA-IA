@@ -11,6 +11,7 @@ from edubot.data.models.questions import Questions
 # Import necessary libraries
 from flask import Blueprint, request
 from flask_cors import cross_origin
+from edubot.api.http import get_payload
 from peewee import PeeweeException # ORM library
 import json
 
@@ -39,7 +40,7 @@ app_plot = Blueprint("plot", __name__)
 def get_student_plots():
     if request.method == "POST":
         try:
-            student_data = request.get_json()[0]
+            student_data = get_payload()
             
             # Call the plot function for the plot module
             title, data = subject_performance_by_competencies(student_data)
@@ -59,7 +60,7 @@ def get_student_plots():
 def get_course_plots():
     if request.method == "POST":
         try:
-            course_id = request.get_json()[0]["course_id"]
+            course_id = get_payload()["course_id"]
             
             # Call the plot function for the plot module
             data = course_general_performance(course_id)
@@ -79,7 +80,7 @@ def get_course_plots():
 def get_ova_plots():
     if request.method == "POST":
         try:
-            data = request.get_json()[0]
+            data = get_payload()
             
             # Call the plot function for the plot module
             data = ova_performance_by_students(data)
@@ -99,7 +100,7 @@ def get_ova_plots():
 def get_interaction_plots():
     if request.method == "POST":    
         try:
-            interaction_data = request.get_json()[0]
+            interaction_data = get_payload()
             print(interaction_data)
             
             # BUGFIX (B1): the original code used the Python "and" operator between two
@@ -127,7 +128,7 @@ def get_interaction_plots():
 # @cross_origin()
 # def get_competency_plots():
 #     if request.method == "POST":
-#         competency_id = request.get_json()[0]["competency_id"]
+#         competency_id = get_payload()["competency_id"]
         
 #         # Call the plot function for the plot module
 #         data = competency_performance_by_students(competency_id)
