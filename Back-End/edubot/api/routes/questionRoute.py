@@ -11,6 +11,8 @@ from edubot.data.models.answers import Answers
 from edubot.data.models.attempts import Attempts
 
 from edubot.api.auth import require_auth
+from edubot.api.http import get_lang
+from edubot.i18n import tr
 from edubot.services.proactivity import trigger_evaluation
 
 # Create a route blueprint as a reusable component
@@ -20,8 +22,12 @@ app_question = Blueprint("question", __name__)
 # BUGFIX: the MySQL JSONField returns a dict, but under the SQLite dev fallback
 # (see data/models/base.py) the same column comes back as a raw string, which
 # crashed these routes locally. Accept both representations.
-def _alternatives_list(question):
+# Fase 4 (A12): com lang="en" e tradução disponível, serve alternatives_en —
+# na MESMA ordem do PT, então o gabarito por letra continua válido.
+def _alternatives_list(question, lang="pt"):
     alternatives = question.alternatives
+    if lang == "en" and question.alternatives_en:
+        alternatives = question.alternatives_en
     if isinstance(alternatives, str):
         alternatives = json.loads(alternatives)
     return alternatives["alternatives"]
@@ -66,6 +72,7 @@ def show_ova_questions():
     if request.method == "POST":
         try:
             question_data = get_payload()
+            lang = get_lang()
             # Get all the questions of the given OVA
             questions = Questions.select().where(Questions.ova_id == question_data["ova_id"])
             questions_ids = [question.question_id for question in questions]
@@ -84,8 +91,8 @@ def show_ova_questions():
             for question in questions:
                 question_dict = {
                     "question_id": question.question_id,
-                    "statement": question.statement,
-                    "alternatives": _alternatives_list(question),
+                    "statement": tr(question.statement, question.statement_en, lang),
+                    "alternatives": _alternatives_list(question, lang),
                     "answered": question.question_id in answers_ids,
                     "competency_id": question.competency_id.competency_id
                 }

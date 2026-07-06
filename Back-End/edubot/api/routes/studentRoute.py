@@ -1,7 +1,3 @@
-# Add parent directories to the path to enable imports from submodules
-import sys, os
-
-
 # Import necessary libraries
 from flask import Blueprint, request, g
 from flask_cors import cross_origin
@@ -13,6 +9,7 @@ from edubot.data.models.students import Students
 
 # MELHORIA (4.2): autenticação + perfil completo do aluno logado
 from edubot.api.auth import require_auth
+from edubot.api.http import get_lang
 from edubot.services.student_context import build_student_profile
 
 # Create a route blueprint as a reusable component
@@ -27,7 +24,8 @@ app_student = Blueprint("student", __name__)
 @require_auth
 def student_me():
     try:
-        return json.dumps(build_student_profile(g.student), default=str), 200
+        # Fase 4 (A12): conteúdo (OVAs, recursos, competências) no idioma pedido
+        return json.dumps(build_student_profile(g.student, lang=get_lang()), default=str), 200
     except PeeweeException as err:
         return json.dumps({"Error": f"{err}"}), 500
 

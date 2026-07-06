@@ -24,6 +24,8 @@ from edubot.data.models.ova_progress import OVAProgress
 from edubot.data.models.resource_progress import ResourceProgress
 
 from edubot.api.auth import require_auth
+from edubot.api.http import get_lang
+from edubot.i18n import tr
 from edubot.services.proactivity import trigger_evaluation
 
 app_progress = Blueprint("progress", __name__)
@@ -36,6 +38,7 @@ app_progress = Blueprint("progress", __name__)
 @require_auth
 def ova_resources(ova_id):
     try:
+        lang = get_lang()
         resource_list = []
         for resource in Resources.select().where(Resources.ova_id == ova_id):
             rp = ResourceProgress.get_or_none(
@@ -44,7 +47,7 @@ def ova_resources(ova_id):
             resource_list.append({
                 "resource_id": resource.resource_id,
                 "resource_type": resource.resource_type,
-                "resource_title": resource.resource_title,
+                "resource_title": tr(resource.resource_title, resource.resource_title_en, lang),
                 "resource_url": resource.resource_url,
                 "media_type": resource.media_type,
                 "duration_seconds": resource.duration_seconds,

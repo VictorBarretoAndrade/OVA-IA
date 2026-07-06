@@ -8,6 +8,16 @@ corpo vinha diferente. Agora o contrato é o objeto puro; durante a transição
 """
 from flask import abort, request
 
+from edubot.i18n import norm_lang
+
+
+def get_lang():
+    """Idioma pedido pela requisição (?lang=en), normalizado para pt|en.
+
+    Fase 4 (A12): o conteúdo do banco tem colunas de tradução e as rotas de
+    conteúdo servem o idioma pedido, com fallback PT."""
+    return norm_lang(request.args.get("lang"))
+
 
 def get_payload():
     """Retorna o corpo JSON da requisição como dict.

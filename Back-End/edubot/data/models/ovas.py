@@ -9,6 +9,8 @@ class OVAs(BaseModel):
     ova_id = IntegerField(primary_key=True)
     # Name of the OVA
     ova_name = TextField()
+    # Tradução EN (Fase 4 — A12); NULL cai no PT (degradação segura)
+    ova_name_en = TextField(null=True)
     # Foreign key referencing the subject to which the OVA belongs
     subject_id = ForeignKeyField(Subjects, backref="ovas", on_delete="cascade", on_update="cascade")
     num_interactions = IntegerField()

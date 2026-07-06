@@ -19,6 +19,8 @@ class Resources(BaseModel):
     ova_id = ForeignKeyField(OVAs, backref="resources", on_delete="cascade", on_update="cascade")
     resource_type = CharField(max_length=50)
     resource_title = CharField(max_length=255)
+    # Tradução EN (Fase 4 — A12); NULL cai no PT (degradação segura)
+    resource_title_en = CharField(max_length=255, null=True)
     # Where the media lives (null for texto/quiz/atividade embedded in the OVA page)
     resource_url = TextField(null=True)
     # How the URL should be interpreted by the player: "upload" (direct file),

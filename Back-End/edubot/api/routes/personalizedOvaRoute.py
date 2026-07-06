@@ -30,6 +30,8 @@ from edubot.data.models.interventions import Interventions
 from edubot.data.models.personalized_ova import PersonalizedOVA, PersonalizedOVAItem
 
 from edubot.api.auth import require_auth
+from edubot.api.http import get_lang
+from edubot.i18n import tr
 from edubot.services.student_context import build_student_profile
 from edubot.agent import run_personalized_ova_agent
 
@@ -38,8 +40,11 @@ app_personalized_ova = Blueprint("personalized_ova", __name__)
 
 # Aceita o JSONField tanto como dict (MySQL) quanto como string (SQLite dev),
 # como em questionRoute (B9). Nunca expõe o gabarito ao cliente.
-def _alternatives_list(question):
+# Fase 4 (A12): serve alternatives_en quando lang="en" (mesma ordem do PT).
+def _alternatives_list(question, lang="pt"):
     alternatives = question.alternatives
+    if lang == "en" and question.alternatives_en:
+        alternatives = question.alternatives_en
     if isinstance(alternatives, str):
         alternatives = json.loads(alternatives)
     return alternatives["alternatives"]
@@ -94,6 +99,7 @@ def create_personalized_ova():
 @require_auth
 def list_personalized_ovas():
     try:
+        lang = get_lang()
         ovas = []
         for pova in (PersonalizedOVA
                      .select()
@@ -105,7 +111,8 @@ def list_personalized_ovas():
                 "titulo": pova.title,
                 "status": pova.status,
                 "created_at": str(pova.created_at),
-                "competencia": comp.competency_description if comp else None,
+                "competencia": tr(comp.competency_description,
+                                  comp.competency_description_en, lang) if comp else None,
             })
         return json.dumps(ovas, default=str), 200
     except PeeweeException as err:
@@ -124,6 +131,7 @@ def get_personalized_ova(pova_id):
             # 404 também quando é de outro aluno (não vaza existência)
             return json.dumps({"Error": "OVA personalizada não encontrada"}), 404
 
+        lang = get_lang()
         items = (PersonalizedOVAItem
                  .select()
                  .where(PersonalizedOVAItem.personalized_ova_id == pova)
@@ -142,7 +150,7 @@ def get_personalized_ova(pova_id):
                 recursos.append({
                     "resource_id": resource.resource_id,
                     "resource_type": resource.resource_type,
-                    "resource_title": resource.resource_title,
+                    "resource_title": tr(resource.resource_title, resource.resource_title_en, lang),
                     "resource_url": resource.resource_url,
                     "media_type": resource.media_type,
                     "duration_seconds": resource.duration_seconds,
@@ -161,8 +169,8 @@ def get_personalized_ova(pova_id):
                             .exists())
                 questoes.append({
                     "question_id": question.question_id,
-                    "statement": question.statement,
-                    "alternatives": _alternatives_list(question),
+                    "statement": tr(question.statement, question.statement_en, lang),
+                    "alternatives": _alternatives_list(question, lang),
                     "answered": answered,
                     "competency_id": question.competency_id.competency_id,
                 })
@@ -177,7 +185,8 @@ def get_personalized_ova(pova_id):
             "created_at": str(pova.created_at),
             "competencia": {
                 "competency_id": comp.competency_id,
-                "nome": comp.competency_description,
+                "nome": tr(comp.competency_description,
+                           comp.competency_description_en, lang),
             } if comp else None,
             "recursos": recursos,
             "questoes": questoes,

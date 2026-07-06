@@ -13,6 +13,10 @@ class Questions(BaseModel):
     statement = TextField()
     # Possible answers for the question
     alternatives = JSONField()
+    # Traduções EN (Fase 4 — A12); NULL cai no PT. As alternativas EN mantêm a
+    # MESMA ordem do PT, então o gabarito por letra continua válido.
+    statement_en = TextField(null=True)
+    alternatives_en = JSONField(null=True)
     # Correct answer for the question
     answer = TextField()
     # Foreign key referencing the OVA to which the question belongs
