@@ -18,7 +18,11 @@ import logging
 
 from edubot.agent import get_recommendation
 from edubot.data.models.alerts import Alerts
+from edubot.data.models.attempts import Attempts
+from edubot.data.models.interactions import Interactions
 from edubot.data.models.interventions import Interventions
+from edubot.data.models.ova_progress import OVAProgress
+from edubot.data.models.students import Students
 from edubot.services.student_context import build_student_profile
 
 logger = logging.getLogger("edubot.proactivity")
@@ -80,3 +84,40 @@ def trigger_evaluation(student):
         logger.exception("Falha ao avaliar proatividade do aluno %s",
                          getattr(student, "student_id", "?"))
         return None
+
+
+def active_student_ids():
+    """IDs de alunos com ALGUMA atividade (interação, leitura ou tentativa).
+    Fonte única usada pela varredura agendada e pelo painel do tutor — evita
+    varrer os 500 alunos do seed e mantém a lógica em um só lugar (A15)."""
+    ids = set()
+    for query in (
+        Interactions.select(Interactions.student_id).distinct().tuples(),
+        OVAProgress.select(OVAProgress.student_id).distinct().tuples(),
+        Attempts.select(Attempts.student_id).distinct().tuples(),
+    ):
+        for row in query:
+            if row[0] is not None:
+                ids.add(row[0])
+    return ids
+
+
+def run_class_evaluation(limit=200):
+    """Varredura periódica (chamada pelo scheduler): avalia todos os alunos com
+    atividade e materializa intervenções/alertas para quem entrou em risco —
+    inclusive inatividade (Regra 1), pois um aluno que estudou e parou continua
+    na lista. Retorna quantas recomendações acionáveis foram criadas."""
+    ids = list(active_student_ids())[:limit]
+    if not ids:
+        return 0
+    created = 0
+    for student in (Students
+                    .select()
+                    .where((Students.student_id.in_(ids)) &
+                           (Students.role == "aluno"))):
+        try:
+            if evaluate_student(student) is not None:
+                created += 1
+        except Exception:
+            logger.exception("Falha ao avaliar aluno %s na varredura", student.student_id)
+    return created

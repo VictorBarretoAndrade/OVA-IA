@@ -61,4 +61,14 @@ app.register_blueprint(app_tutor)
 
 # Start the application
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8090)
+    import os
+
+    # Scheduler in-process (A13). Só no processo que serve de fato: sob o
+    # reloader do Flask debug, o Werkzeug reexecuta o script num filho com
+    # WERKZEUG_RUN_MAIN=true — iniciar só ali evita rodar a varredura duas vezes.
+    debug = os.environ.get("EDUBOT_DEBUG", "1").lower() in ("1", "true", "on", "yes")
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not debug:
+        from edubot.services.scheduler import start_scheduler
+        start_scheduler()
+
+    app.run(debug=debug, host="0.0.0.0", port=8090)

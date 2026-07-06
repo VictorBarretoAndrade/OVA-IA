@@ -1,6 +1,8 @@
 """A13 — proatividade: o EduBot age por evento, sem clique do aluno."""
+import datetime
 import json
 
+from edubot.data.models.attempts import Attempts
 from edubot.data.models.interventions import Interventions
 
 
@@ -69,3 +71,22 @@ def test_dedup_no_duplicate_pending_same_type(client, auth):
     types = [it.type for it in Interventions.select().where(
         (Interventions.student_id == 1) & (Interventions.result == "pendente"))]
     assert len(types) == len(set(types))
+
+
+def test_run_class_evaluation_scans_active_students(seeded_db):
+    from edubot.services.proactivity import run_class_evaluation
+    # Sem atividade nenhuma, ninguém é avaliado.
+    assert run_class_evaluation() == 0
+    # Dá atividade ao aluno 1 -> passa a ser varrido e ganha intervenção.
+    Attempts.create(student_id=1, question_id=1, is_correct=False,
+                    attempt_time=datetime.datetime.now())
+    assert run_class_evaluation() >= 1
+    assert _pending(1) >= 1
+
+
+def test_scheduler_off_by_default(monkeypatch):
+    from edubot.services import scheduler
+    monkeypatch.delenv("EDUBOT_SCHEDULER", raising=False)
+    scheduler._scheduler = None
+    # Sem EDUBOT_SCHEDULER=on, não inicia nada (não roda em import/teste).
+    assert scheduler.start_scheduler() is None

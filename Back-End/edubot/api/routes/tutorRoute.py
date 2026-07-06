@@ -22,7 +22,7 @@ from edubot.data.models.attempts import Attempts
 from edubot.data.models.alerts import Alerts
 
 from edubot.api.auth import require_auth
-from edubot.services.proactivity import evaluate_student
+from edubot.services.proactivity import evaluate_student, active_student_ids
 
 app_tutor = Blueprint("tutor", __name__)
 
@@ -35,24 +35,9 @@ def _is_tutor():
     return role in ("tutor", "admin") or bool(g.student.is_admin)
 
 
-def _active_student_ids():
-    """IDs de alunos que têm ALGUMA atividade (interação/progresso/tentativa).
-    Mantém o painel relevante e rápido sem varrer os 500 alunos do seed."""
-    ids = set()
-    for query in (
-        Interactions.select(Interactions.student_id).distinct().tuples(),
-        OVAProgress.select(OVAProgress.student_id).distinct().tuples(),
-        Attempts.select(Attempts.student_id).distinct().tuples(),
-    ):
-        for row in query:
-            if row[0] is not None:
-                ids.add(row[0])
-    return ids
-
-
 def _turma_students():
     course_id = g.student.course_id
-    active = _active_student_ids()
+    active = active_student_ids()  # fonte única (edubot.services.proactivity)
     if not active:
         return []
     query = (Students

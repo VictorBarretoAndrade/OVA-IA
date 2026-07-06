@@ -38,6 +38,13 @@ services:
       # Segredo para assinar tokens de sessão (A18). Defina EDUBOT_SECRET num
       # arquivo .env na raiz; sem ele o auth.py usa um default só de dev.
       EDUBOT_SECRET: ${EDUBOT_SECRET:-dev-secret-change-me}
+      # Proatividade agendada (A13): varredura periódica da turma. Ligada por
+      # padrão no container; ajuste a cadência via .env (hora diária ou, para
+      # demo, um intervalo em minutos).
+      EDUBOT_SCHEDULER: ${EDUBOT_SCHEDULER:-on}
+      EDUBOT_SCHEDULER_HOUR: ${EDUBOT_SCHEDULER_HOUR:-3}
+      EDUBOT_SCHEDULER_INTERVAL_MINUTES: ${EDUBOT_SCHEDULER_INTERVAL_MINUTES:-}
+      EDUBOT_DEBUG: ${EDUBOT_DEBUG:-0}
       # IA do EduBot — padrão mockado. Defina estas variáveis num arquivo .env
       # na raiz do projeto (o compose o carrega automaticamente) para ligar o
       # Claude real na AWS Bedrock sem tocar no código.
