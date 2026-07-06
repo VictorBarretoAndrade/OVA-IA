@@ -88,6 +88,14 @@ export class ApiError extends Error {
   }
 }
 
+// Fase 4 (A12): idioma atual (mesma chave do i18n.tsx). As rotas de CONTEÚDO
+// recebem ?lang= e o backend serve as traduções do banco com fallback PT —
+// o dicionário manual contentDict.ts foi aposentado.
+const LANG_KEY = "edubot.lang";
+const currentLang = () => (localStorage.getItem(LANG_KEY) === "en" ? "en" : "pt");
+const withLang = (path: string) =>
+  `${path}${path.includes("?") ? "&" : "?"}lang=${currentLang()}`;
+
 // ---------------------------------------------------------------------------
 // Tipos espelhando as respostas do backend
 // ---------------------------------------------------------------------------
@@ -207,7 +215,7 @@ export async function login(ra: string, password: string): Promise<Session> {
   return session;
 }
 
-export const getMe = () => request<StudentProfile>("/student/me");
+export const getMe = () => request<StudentProfile>(withLang("/student/me"));
 
 export const getEdubotRecommendation = () =>
   request<{ recommendation: Recommendation }>("/edubot/recommendation");
@@ -293,12 +301,13 @@ export const getExternalResources = (competencyId: number) =>
   );
 
 export const listPersonalizedOVAs = () =>
-  request<PersonalizedOVASummary[]>("/personalized-ova");
+  request<PersonalizedOVASummary[]>(withLang("/personalized-ova"));
 
 export const getPersonalizedOVA = (id: number) =>
-  request<PersonalizedOVAContent>(`/personalized-ova/${id}`);
+  request<PersonalizedOVAContent>(withLang(`/personalized-ova/${id}`));
 
-export const getOVAResources = (ovaId: number) => request<OvaResource[]>(`/ova/${ovaId}/resources`);
+export const getOVAResources = (ovaId: number) =>
+  request<OvaResource[]>(withLang(`/ova/${ovaId}/resources`));
 
 export const saveResourceProgress = (data: {
   resource_id: number;
@@ -321,7 +330,7 @@ export const saveOVAProgress = (
 ) => request<string>("/progress/ova", { method: "POST", body: data, keepalive: opts.keepalive });
 
 export const getOVAQuestions = (ovaId: number, studentId: number) =>
-  request<OvaQuestion[]>("/question/ova", { method: "POST", body: { ova_id: ovaId, student_id: studentId } });
+  request<OvaQuestion[]>(withLang("/question/ova"), { method: "POST", body: { ova_id: ovaId, student_id: studentId } });
 
 export const answerQuestion = (studentId: number, questionId: number, selected: string) =>
   request<{ is_correct: boolean }>("/question/answer", {

@@ -20,7 +20,6 @@ import {
 } from "recharts";
 import { StudentProfile } from "../services/api";
 import { useT } from "../i18n";
-import { useContentT } from "../services/contentDict";
 import { PerformanceCoach } from "./PerformanceCoach";
 
 interface EvolutionProps {
@@ -29,7 +28,6 @@ interface EvolutionProps {
 
 export const Evolution = ({ profile }: EvolutionProps) => {
   const t = useT();
-  const ct = useContentT();
   // Rótulos das séries (aparecem na legenda dos gráficos)
   const kRead = t("percentual lido", "percent read");
   const kMin = t("minutos de leitura", "reading minutes");
@@ -38,7 +36,7 @@ export const Evolution = ({ profile }: EvolutionProps) => {
 
   const competencyData = profile.competencias.map((item, index) => ({
     nome: `Comp. ${index + 1}`,
-    completo: ct(item.nome),
+    completo: item.nome,
     score: item.total_questoes ? Math.round((100 * item.acertos) / item.total_questoes) : 0,
     status: item.status
   }));
@@ -50,7 +48,7 @@ export const Evolution = ({ profile }: EvolutionProps) => {
   }));
 
   const ovaData = profile.ovas.map((ova) => {
-    const nome = ct(ova.ova_name);
+    const nome = ova.ova_name;
     return {
       nome: nome.length > 18 ? `${nome.slice(0, 18)}…` : nome,
       [kRead]: ova.perc_scrolled || 0,

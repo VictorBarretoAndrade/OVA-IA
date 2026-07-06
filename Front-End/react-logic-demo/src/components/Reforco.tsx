@@ -32,7 +32,6 @@ import { AudioPlayer } from "./players/AudioPlayer";
 import { MediaProgress, VideoPlayer } from "./players/VideoPlayer";
 import { useToast } from "./ui/Toast";
 import { useT } from "../i18n";
-import { useContentT } from "../services/contentDict";
 
 interface ReforcoProps {
   profile: StudentProfile;
@@ -43,7 +42,6 @@ const LETTERS = "abcdefghijklmnopqrstuvwxyz";
 
 export const Reforco = ({ onTracked }: ReforcoProps) => {
   const t = useT();
-  const ct = useContentT();
   const [ovas, setOvas] = useState<PersonalizedOVASummary[]>([]);
   const [active, setActive] = useState<PersonalizedOVAContent | null>(null);
   const [generating, setGenerating] = useState(false);
@@ -116,7 +114,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
         <div className="rounded-[8px] border border-line bg-white p-8 shadow-soft">
           {active.competencia && (
             <span className="rounded-[8px] bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-800">
-              {t("Foco:", "Focus:")} {ct(active.competencia.nome)}
+              {t("Foco:", "Focus:")} {active.competencia.nome}
             </span>
           )}
           <h1 className="mt-3 text-3xl font-bold text-ink">{active.titulo}</h1>
@@ -137,7 +135,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
                     key={resource.resource_id}
                     url={resource.resource_url}
                     mediaType={resource.media_type}
-                    title={ct(resource.resource_title)}
+                    title={resource.resource_title}
                     initialPerc={resource.perc_consumed}
                     onProgress={(state) => saveProgress(resource, state)}
                   />
@@ -148,7 +146,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
                   <AudioPlayer
                     key={resource.resource_id}
                     url={resource.resource_url}
-                    title={ct(resource.resource_title)}
+                    title={resource.resource_title}
                     durationSeconds={resource.duration_seconds}
                     initialSeconds={resource.seconds_consumed}
                     onProgress={(state) => saveProgress(resource, state)}
@@ -163,7 +161,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
                   >
                     <span className="flex items-center gap-2 font-semibold text-ink">
                       <FileText size={20} className="text-brand" />
-                      {ct(resource.resource_title)}
+                      {resource.resource_title}
                     </span>
                     <a
                       href={resource.resource_url ?? "#"}
@@ -244,7 +242,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
                 <Stars size={18} className="text-coral" />
                 {pova.titulo}
               </span>
-              {pova.competencia && <span className="mt-1 block text-sm text-muted">{ct(pova.competencia)}</span>}
+              {pova.competencia && <span className="mt-1 block text-sm text-muted">{pova.competencia}</span>}
             </span>
             {loadingId === pova.personalized_ova_id ? (
               <LoaderCircle className="animate-spin text-brand" size={20} />
@@ -323,13 +321,12 @@ const ExternalSources = ({ competencyId }: { competencyId: number }) => {
 // Cartão de atividade prática com botão de conclusão (estado local)
 const ActivityCard = ({ resource, onComplete }: { resource: OvaResource; onComplete: () => void }) => {
   const t = useT();
-  const ct = useContentT();
   const [done, setDone] = useState(resource.completed);
   return (
     <div className="flex items-center justify-between rounded-[8px] border border-line bg-white p-5">
       <span className="flex items-center gap-2 font-semibold text-ink">
         <ClipboardCheck size={20} className="text-brand" />
-        {ct(resource.resource_title)}
+        {resource.resource_title}
       </span>
       <button
         disabled={done}

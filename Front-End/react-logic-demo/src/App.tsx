@@ -10,7 +10,7 @@ import { Sidebar, Topbar } from "./components/Sidebar";
 import { Login } from "./components/Login";
 import { LoaderCircle } from "lucide-react";
 import { OvaState, Session, StudentProfile, clearSession, getMe, getSession, getToken } from "./services/api";
-import { useT } from "./i18n";
+import { useLanguage, useT } from "./i18n";
 
 // MELHORIA — cada tela vira um chunk separado (React.lazy), então o app só baixa
 // o código da aba que o aluno abrir, em vez de tudo (inclusive os gráficos
@@ -39,6 +39,7 @@ const App = () => {
   // OVA aberto no leitor nativo (null = nenhum). Tem precedência sobre activeView.
   const [readerOva, setReaderOva] = useState<OvaState | null>(null);
   const t = useT();
+  const { lang } = useLanguage();
 
   // (Re)carrega o perfil completo do aluno — chamado no login e após cada
   // ação rastreada (progresso de mídia, quiz, recomendação), mantendo
@@ -58,9 +59,11 @@ const App = () => {
     }
   }, []);
 
+  // Recarrega também quando o idioma muda: o conteúdo (nomes de OVA, recursos,
+  // competências) vem TRADUZIDO do banco conforme ?lang= (Fase 4 — A12).
   useEffect(() => {
     if (session) refreshProfile();
-  }, [session, refreshProfile]);
+  }, [session, refreshProfile, lang]);
 
   const logout = () => {
     clearSession();

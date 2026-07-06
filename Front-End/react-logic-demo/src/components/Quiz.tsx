@@ -15,7 +15,6 @@ import {
 } from "../services/api";
 import { useToast } from "./ui/Toast";
 import { useT } from "../i18n";
-import { useContentT } from "../services/contentDict";
 
 interface QuizProps {
   profile: StudentProfile;
@@ -32,7 +31,6 @@ interface QuizResult {
 
 export const Quiz = ({ profile, onTracked }: QuizProps) => {
   const t = useT();
-  const ct = useContentT();
   const [activeOvaId, setActiveOvaId] = useState(profile.ovas[0]?.ova_id ?? 0);
   const [questions, setQuestions] = useState<OvaQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<number, number>>({});
@@ -113,7 +111,7 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
                 activeOvaId === ova.ova_id ? "border-brand bg-indigo-50 text-indigo-800" : "border-line bg-white text-muted"
               }`}
             >
-              {ct(ova.ova_name)}
+              {ova.ova_name}
             </button>
           ))}
         </div>

@@ -9,7 +9,6 @@ import { useState } from "react";
 import { StudentProfile, saveResourceProgress } from "../services/api";
 import { useToast } from "./ui/Toast";
 import { useT } from "../i18n";
-import { useContentT } from "../services/contentDict";
 
 interface ExercisesProps {
   profile: StudentProfile;
@@ -18,7 +17,6 @@ interface ExercisesProps {
 
 export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
   const t = useT();
-  const ct = useContentT();
   const [completedNow, setCompletedNow] = useState<number[]>([]);
   const toast = useToast();
 
@@ -56,8 +54,8 @@ export const Exercises = ({ profile, onTracked }: ExercisesProps) => {
                 <div className="flex items-start gap-3">
                   <ClipboardList className="mt-1 text-brand" size={24} />
                   <div>
-                    <h2 className="text-xl font-bold text-ink">{ct(activity.titulo)}</h2>
-                    <p className="mt-1 text-muted">{ct(activity.ovaName)}</p>
+                    <h2 className="text-xl font-bold text-ink">{activity.titulo}</h2>
+                    <p className="mt-1 text-muted">{activity.ovaName}</p>
                   </div>
                 </div>
                 {done ? (

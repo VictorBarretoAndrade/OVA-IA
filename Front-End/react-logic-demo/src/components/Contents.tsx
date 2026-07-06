@@ -22,7 +22,6 @@ import { useToast } from "./ui/Toast";
 import { VideoPlayer, MediaProgress } from "./players/VideoPlayer";
 import { AudioPlayer } from "./players/AudioPlayer";
 import { useT } from "../i18n";
-import { useContentT } from "../services/contentDict";
 
 interface ContentsProps {
   profile: StudentProfile;
@@ -34,7 +33,6 @@ interface ContentsProps {
 
 export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
   const t = useT();
-  const ct = useContentT();
   const [activeOvaId, setActiveOvaId] = useState(profile.ovas[0]?.ova_id ?? 0);
   const [resources, setResources] = useState<OvaResource[]>([]);
   const activeOva = profile.ovas.find((ova) => ova.ova_id === activeOvaId);
@@ -104,7 +102,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
               <span className="text-sm font-semibold text-brand">OVA</span>
               {ova.completed && <CheckCircle2 className="text-teal" size={20} />}
             </div>
-            <div className="mt-2 font-bold text-ink">{ct(ova.ova_name)}</div>
+            <div className="mt-2 font-bold text-ink">{ova.ova_name}</div>
             <div className="mt-2 text-sm text-muted">
               {ova.perc_scrolled || 0}% {t("lido", "read")} · {Math.round((ova.read_time || 0) / 60)} {t("min estudados", "min studied")}
             </div>
@@ -118,7 +116,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <p className="font-semibold text-brand">{t("Leitura interativa", "Interactive reading")}</p>
-                <h2 className="mt-1 text-2xl font-bold text-ink">{ct(activeOva.ova_name)}</h2>
+                <h2 className="mt-1 text-2xl font-bold text-ink">{activeOva.ova_name}</h2>
                 <p className="mt-2 text-muted">
                   {t(
                     "O texto completo, os acordeões e os carrosséis abrem aqui mesmo, no novo leitor — com o Professor Mediador integrado. O tempo de leitura e o scroll continuam sendo rastreados normalmente.",
@@ -146,7 +144,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
             >
               <span className="flex items-center gap-2 font-semibold text-ink">
                 <FileText size={20} className="text-brand" />
-                {ct(resource.resource_title)}
+                {resource.resource_title}
               </span>
               <a
                 href={resource.resource_url ?? "#"}
@@ -167,7 +165,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
               key={resource.resource_id}
               url={resource.resource_url}
               mediaType={resource.media_type}
-              title={ct(resource.resource_title)}
+              title={resource.resource_title}
               initialPerc={resource.perc_consumed}
               onProgress={trackMedia(resource)}
             />
@@ -179,7 +177,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
             <AudioPlayer
               key={resource.resource_id}
               url={resource.resource_url}
-              title={ct(resource.resource_title)}
+              title={resource.resource_title}
               durationSeconds={resource.duration_seconds}
               initialSeconds={resource.seconds_consumed}
               onProgress={trackMedia(resource)}
@@ -196,7 +194,7 @@ export const Contents = ({ profile, onTracked, onOpenOva }: ContentsProps) => {
               <div className="flex items-center gap-3">
                 <ListChecks className="text-brand" size={24} />
                 <div>
-                  <div className="font-bold text-ink">{ct(resource.resource_title)}</div>
+                  <div className="font-bold text-ink">{resource.resource_title}</div>
                   <div className="text-sm text-muted">{t("Atividade prática", "Practical activity")}</div>
                 </div>
               </div>
