@@ -31,13 +31,15 @@ logger = logging.getLogger("edubot.proactivity")
 ACTIONABLE_PRIORITIES = ("alta", "media")
 
 
-def evaluate_student(student, *, create_alert=True):
+def evaluate_student(student, *, create_alert=True, lang="pt"):
     """Avalia as regras do aluno e materializa a recomendação acionável.
 
+    `lang` (Fase 4 — A12): idioma da mensagem da intervenção (o gatilho por
+    evento usa o idioma da requisição do aluno; a varredura agendada usa PT).
     Retorna a recomendação criada (dict) ou None se nada acionável.
     Pode levantar exceção (use `trigger_evaluation` no caminho de escrita)."""
-    profile = build_student_profile(student)
-    rec = get_recommendation(profile)
+    profile = build_student_profile(student, lang=lang)
+    rec = get_recommendation(profile, lang=lang)
     if rec.get("prioridade") not in ACTIONABLE_PRIORITIES:
         return None
 
@@ -74,7 +76,7 @@ def evaluate_student(student, *, create_alert=True):
     return rec
 
 
-def trigger_evaluation(student):
+def trigger_evaluation(student, lang="pt"):
     """Versão best-effort para o caminho de escrita (pós-quiz/progresso): nunca
     quebra a requisição principal se a avaliação falhar. Retorna a recomendação
     ou None.
@@ -93,7 +95,7 @@ def trigger_evaluation(student):
                                   .exists())
         if already_notified_today:
             return None
-        return evaluate_student(student)
+        return evaluate_student(student, lang=lang)
     except Exception:
         logger.exception("Falha ao avaliar proatividade do aluno %s",
                          getattr(student, "student_id", "?"))

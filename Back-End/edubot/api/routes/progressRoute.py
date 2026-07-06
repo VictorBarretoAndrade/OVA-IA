@@ -119,7 +119,7 @@ def save_ova_progress():
         # para não repetir a montagem cara do perfil (A9).
         now_completed = completed or perc_scrolled >= 90
         if now_completed and not was_completed:
-            trigger_evaluation(g.student)
+            trigger_evaluation(g.student, lang=get_lang())
         return json.dumps("Progress saved"), 200
     except PeeweeException as err:
         return json.dumps({"Error": f"{err}"}), 500

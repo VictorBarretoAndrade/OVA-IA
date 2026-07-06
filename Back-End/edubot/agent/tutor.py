@@ -37,7 +37,7 @@ REGRAS:
 não estejam no material.
 - Se a pergunta não tiver relação com o conteúdo do OVA, diga educadamente que ela está \
 fora do escopo deste material e sugira tópicos do OVA que você PODE responder.
-- Seja claro, didático e direto, no idioma do aluno (português).
+- Seja claro, didático e direto. Responda em {idioma}.
 
 MATERIAL DO OVA:
 {contexto}"""
@@ -121,7 +121,11 @@ def _retrieve(question, passages):
 # Cliente mockado: simula o Claude tutor de forma determinística.
 # ---------------------------------------------------------------------------
 class _MockTutorClient:
-    def invoke(self, system, messages, titulo, passages, headings):
+    def invoke(self, system, messages, titulo, passages, headings, lang="pt"):
+        # Fase 4 (A12): o mock também responde no idioma do aluno.
+        def T(pt, en):
+            return en if lang == "en" else pt
+
         question = ""
         for m in reversed(messages):
             if m.get("role") == "user":
@@ -132,19 +136,26 @@ class _MockTutorClient:
 
         if not relevant:
             sugeridos = headings[:3]
-            dicas = ("; ".join(sugeridos)) if sugeridos else "os tópicos apresentados"
-            text = (
+            dicas = ("; ".join(sugeridos)) if sugeridos else T(
+                "os tópicos apresentados", "the topics presented")
+            text = T(
                 f"Essa pergunta parece fora do conteúdo deste OVA (\"{titulo}\"). "
                 f"Como tutor deste material, posso te ajudar com temas como: {dicas}. "
-                "Sobre o que desse conteúdo você gostaria de saber mais?")
+                "Sobre o que desse conteúdo você gostaria de saber mais?",
+                f"That question seems outside the content of this OVA (\"{titulo}\"). "
+                f"As the tutor for this material, I can help you with topics such as: {dicas}. "
+                "What would you like to know more about from this content?")
             return _text_envelope(text)
 
         citacoes = " ".join(f"\"{p['text']}\"" for p in relevant)
         secao = relevant[0]["heading"]
-        text = (
+        text = T(
             f"Boa pergunta! No material deste OVA, na parte sobre \"{secao}\", "
             f"o conteúdo aponta que: {citacoes} "
-            "Se quiser, posso aprofundar esse ponto ou relacioná-lo com outro tópico do OVA.")
+            "Se quiser, posso aprofundar esse ponto ou relacioná-lo com outro tópico do OVA.",
+            f"Good question! In this OVA's material, in the section about \"{secao}\", "
+            f"the content states that: {citacoes} "
+            "If you'd like, I can go deeper into this point or relate it to another topic in the OVA.")
         return _text_envelope(text)
 
 
@@ -163,17 +174,21 @@ def _text_envelope(text):
 _client = _MockTutorClient()
 
 
-def tutor_reply(titulo, context, messages):
+def tutor_reply(titulo, context, messages, lang="pt"):
     """Ponto de entrada do tutor: título + material do OVA + histórico de chat
     -> resposta do tutor (texto).
 
     titulo: nome do OVA.
     context: material do OVA (texto extraído do conteúdo que o aluno consumiu).
     messages: [{"role": "user"|"assistant", "content": str}, ...]
+    lang: idioma da resposta (Fase 4 — A12), no mock e na LLM real.
     """
     context = (context or "")[:MAX_CONTEXT_CHARS]
     passages, headings = _parse_context(context)
-    system = SYSTEM_PROMPT_TEMPLATE.format(titulo=titulo or "este OVA", contexto=context)
+    system = SYSTEM_PROMPT_TEMPLATE.format(
+        titulo=titulo or ("this OVA" if lang == "en" else "este OVA"),
+        contexto=context,
+        idioma="inglês" if lang == "en" else "português do Brasil")
 
     # Referenciação automática (Cena 2): identifica de quais seções do material a
     # resposta foi ancorada, para o frontend exibir "Fonte: <seção>".
@@ -204,7 +219,8 @@ def tutor_reply(titulo, context, messages):
 
     response = _client.invoke(
         system=system, messages=messages,
-        titulo=titulo or "este OVA", passages=passages, headings=headings)
+        titulo=titulo or ("this OVA" if lang == "en" else "este OVA"),
+        passages=passages, headings=headings, lang=lang)
 
     reply = "".join(b.get("text", "") for b in response.get("content", [])
                     if b.get("type") == "text")

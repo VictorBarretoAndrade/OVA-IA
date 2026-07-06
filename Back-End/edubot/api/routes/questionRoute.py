@@ -162,7 +162,7 @@ def answer_question():
             # sem esperar o aluno clicar em "recomendação". Best-effort: nunca
             # quebra a correção do quiz.
             if not is_correct:
-                trigger_evaluation(student)
+                trigger_evaluation(student, lang=get_lang())
 
             # The frontend uses this flag to show "Correct!"/"Incorrect."
             return json.dumps({"is_correct": is_correct}), 200

@@ -47,11 +47,14 @@ Responda SOMENTE com um JSON válido, sem markdown, no formato:
   "tipo": "plano_retomada" | "trilha_minima" | "revisao_alternativa" | "checklist_execucao" | "aprofundamento" | "recomendacao_formato",
   "prioridade": "alta" | "media" | "baixa",
   "titulo": "<título curto da intervenção>",
-  "mensagem_aluno": "<mensagem motivacional e personalizada, em português, dirigida ao aluno pelo nome>",
+  "mensagem_aluno": "<mensagem motivacional e personalizada, em {response_language}, dirigida ao aluno pelo nome>",
   "acoes": ["<ação concreta 1>", "<ação concreta 2>", "..."],
   "formato_preferido": "video" | "texto" | "podcast" | null,
-  "justificativa": "<explicação de qual regra foi aplicada e por quê, para o professor>"
-}}"""
+  "justificativa": "<explicação de qual regra foi aplicada e por quê, para o professor, em português>"
+}}
+
+Os campos voltados ao ALUNO ("titulo", "mensagem_aluno", "acoes") devem estar em \
+{response_language}. A "justificativa" (para o professor) permanece em português."""
 
 
 USER_PROMPT_TEMPLATE = """Analise o perfil do aluno abaixo e gere a recomendação \
@@ -63,12 +66,15 @@ PERFIL DO ALUNO (JSON):
 Lembre-se: responda apenas com o JSON da recomendação."""
 
 
-def build_system_prompt():
-    """System prompt with the decision thresholds injected."""
+def build_system_prompt(lang="pt"):
+    """System prompt with the decision thresholds injected.
+
+    Fase 4 (A12): `lang` define o idioma dos campos voltados ao aluno."""
     return SYSTEM_PROMPT.format(
         inactivity_days=RULES["INACTIVITY_DAYS"],
         min_consumption=RULES["MIN_CONSUMPTION_PERC"],
         quiz_error_rate=RULES["QUIZ_ERROR_RATE"],
+        response_language="inglês" if lang == "en" else "português do Brasil",
     )
 
 

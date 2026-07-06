@@ -24,8 +24,13 @@ BEDROCK_MODEL_ID = "anthropic.claude-sonnet-4-5-20250929-v1:0"
 # Motor de regras — usado pelo mock para produzir uma resposta plausível.
 # A ordem de prioridade é a mesma documentada no system prompt.
 # ---------------------------------------------------------------------------
-def _apply_rules(profile):
-    nome = profile.get("estudante", {}).get("nome") or "estudante"
+def _apply_rules(profile, lang="pt"):
+    # Fase 4 (A12): os campos voltados ao ALUNO (titulo/mensagem/acoes) saem no
+    # idioma pedido; a justificativa (para o professor) permanece em PT.
+    def T(pt, en):
+        return en if lang == "en" else pt
+
+    nome = profile.get("estudante", {}).get("nome") or T("estudante", "student")
     primeiro_nome = nome.split()[0]
     dias = profile.get("dias_sem_acesso")
     consumo = profile.get("recursos", {}).get("percentual_consumido") or 0
@@ -40,15 +45,21 @@ def _apply_rules(profile):
         return {
             "tipo": "plano_retomada",
             "prioridade": "alta",
-            "titulo": "Plano de retomada dos estudos",
-            "mensagem_aluno": (
+            "titulo": T("Plano de retomada dos estudos", "Study comeback plan"),
+            "mensagem_aluno": T(
                 f"Oi, {primeiro_nome}! Sentimos sua falta — já são {dias} dias sem "
                 "acessar a plataforma. Que tal retomar aos poucos? Separei um plano "
-                "leve para os próximos 3 dias."),
+                "leve para os próximos 3 dias.",
+                f"Hi, {primeiro_nome}! We've missed you — it's been {dias} days since "
+                "you last accessed the platform. How about easing back in? I've put "
+                "together a light plan for the next 3 days."),
             "acoes": [
-                "Dia 1: revisitar por 10 minutos o último OVA acessado",
-                "Dia 2: assistir/ouvir um recurso curto do OVA em andamento",
-                "Dia 3: responder 2 questões do quiz para reativar a memória",
+                T("Dia 1: revisitar por 10 minutos o último OVA acessado",
+                  "Day 1: revisit the last OVA you accessed for 10 minutes"),
+                T("Dia 2: assistir/ouvir um recurso curto do OVA em andamento",
+                  "Day 2: watch/listen to a short resource from the OVA in progress"),
+                T("Dia 3: responder 2 questões do quiz para reativar a memória",
+                  "Day 3: answer 2 quiz questions to refresh your memory"),
             ],
             "formato_preferido": preferencia,
             "justificativa": (
@@ -61,15 +72,22 @@ def _apply_rules(profile):
         return {
             "tipo": "trilha_minima",
             "prioridade": "alta",
-            "titulo": "Trilha mínima de recursos essenciais",
-            "mensagem_aluno": (
+            "titulo": T("Trilha mínima de recursos essenciais",
+                        "Minimum track of essential resources"),
+            "mensagem_aluno": T(
                 f"{primeiro_nome}, você consumiu {consumo}% dos recursos disponíveis. "
                 "Para não perder o fio da disciplina, foque primeiro nos itens "
-                "essenciais desta trilha mínima."),
+                "essenciais desta trilha mínima.",
+                f"{primeiro_nome}, you've consumed {consumo}% of the available "
+                "resources. To keep up with the course, focus first on the essential "
+                "items of this minimum track."),
             "acoes": [
-                "Ler a seção de texto principal do OVA em andamento",
-                "Assistir ao vídeo introdutório do OVA",
-                "Fazer o quiz ao final para consolidar",
+                T("Ler a seção de texto principal do OVA em andamento",
+                  "Read the main text section of the OVA in progress"),
+                T("Assistir ao vídeo introdutório do OVA",
+                  "Watch the OVA's introductory video"),
+                T("Fazer o quiz ao final para consolidar",
+                  "Take the quiz at the end to consolidate"),
             ],
             "formato_preferido": preferencia,
             "justificativa": (
@@ -82,15 +100,22 @@ def _apply_rules(profile):
         return {
             "tipo": "revisao_alternativa",
             "prioridade": "media",
-            "titulo": "Revisão com explicação alternativa",
-            "mensagem_aluno": (
+            "titulo": T("Revisão com explicação alternativa",
+                        "Review with an alternative explanation"),
+            "mensagem_aluno": T(
                 f"{primeiro_nome}, percebi que {round(taxa_erro * 100)}% das suas "
                 "tentativas no quiz não foram bem. Acontece! Vamos revisar os mesmos "
-                "tópicos por um caminho diferente — com analogias e exemplos visuais."),
+                "tópicos por um caminho diferente — com analogias e exemplos visuais.",
+                f"{primeiro_nome}, I noticed {round(taxa_erro * 100)}% of your quiz "
+                "attempts didn't go well. It happens! Let's review the same topics "
+                "through a different path — with analogies and visual examples."),
             "acoes": [
-                "Revisar as competências com mais erros usando o material em outro formato",
-                "Assistir à explicação alternativa em vídeo (ou podcast) do tópico",
-                "Refazer apenas as questões erradas após a revisão",
+                T("Revisar as competências com mais erros usando o material em outro formato",
+                  "Review the competencies with the most mistakes using material in another format"),
+                T("Assistir à explicação alternativa em vídeo (ou podcast) do tópico",
+                  "Watch the alternative video (or podcast) explanation of the topic"),
+                T("Refazer apenas as questões erradas após a revisão",
+                  "Redo only the questions you got wrong after reviewing"),
             ],
             "formato_preferido": preferencia,
             "justificativa": (
@@ -103,15 +128,22 @@ def _apply_rules(profile):
         return {
             "tipo": "checklist_execucao",
             "prioridade": "media",
-            "titulo": "Checklist para concluir o que começou",
-            "mensagem_aluno": (
+            "titulo": T("Checklist para concluir o que começou",
+                        "Checklist to finish what you started"),
+            "mensagem_aluno": T(
                 f"{primeiro_nome}, você já avançou bastante, mas tem "
                 f"{pendentes} OVA(s) começado(s) e não concluído(s). Um checklist "
-                "curto ajuda a fechar o ciclo!"),
+                "curto ajuda a fechar o ciclo!",
+                f"{primeiro_nome}, you've already made good progress, but you have "
+                f"{pendentes} OVA(s) started and not finished. A short checklist "
+                "helps close the loop!"),
             "acoes": [
-                "Abrir o OVA pendente e ir direto à última seção lida",
-                "Concluir a atividade prática pendente",
-                "Marcar o recurso como concluído ao terminar",
+                T("Abrir o OVA pendente e ir direto à última seção lida",
+                  "Open the pending OVA and go straight to the last section you read"),
+                T("Concluir a atividade prática pendente",
+                  "Complete the pending practical activity"),
+                T("Marcar o recurso como concluído ao terminar",
+                  "Mark the resource as completed when you finish"),
             ],
             "formato_preferido": preferencia,
             "justificativa": (
@@ -125,14 +157,19 @@ def _apply_rules(profile):
         return {
             "tipo": "aprofundamento",
             "prioridade": "baixa",
-            "titulo": "Desafio avançado desbloqueado",
-            "mensagem_aluno": (
+            "titulo": T("Desafio avançado desbloqueado", "Advanced challenge unlocked"),
+            "mensagem_aluno": T(
                 f"Parabéns, {primeiro_nome}! Você desenvolveu a competência "
-                f"\"{comp}\". Que tal um desafio avançado para ir além?"),
+                f"\"{comp}\". Que tal um desafio avançado para ir além?",
+                f"Congratulations, {primeiro_nome}! You've developed the competency "
+                f"\"{comp}\". How about an advanced challenge to go further?"),
             "acoes": [
-                f"Explorar material de aprofundamento sobre: {comp}",
-                "Tentar o desafio avançado relacionado à competência",
-                "Compartilhar o resultado com o professor",
+                T(f"Explorar material de aprofundamento sobre: {comp}",
+                  f"Explore advanced material on: {comp}"),
+                T("Tentar o desafio avançado relacionado à competência",
+                  "Try the advanced challenge related to the competency"),
+                T("Compartilhar o resultado com o professor",
+                  "Share the result with your teacher"),
             ],
             "formato_preferido": preferencia,
             "justificativa": (
@@ -145,14 +182,20 @@ def _apply_rules(profile):
     return {
         "tipo": "recomendacao_formato",
         "prioridade": "baixa",
-        "titulo": "Próximos passos no seu formato favorito",
-        "mensagem_aluno": (
+        "titulo": T("Próximos passos no seu formato favorito",
+                    "Next steps in your favorite format"),
+        "mensagem_aluno": T(
             f"{primeiro_nome}, você está em dia! Notei que você se engaja mais com "
             f"conteúdo em {formato}. Selecionei os próximos OVAs priorizando esse "
-            "formato."),
+            "formato.",
+            f"{primeiro_nome}, you're all caught up! I noticed you engage more with "
+            f"{formato} content. I've selected the next OVAs prioritizing that "
+            "format."),
         "acoes": [
-            f"Continuar a trilha priorizando recursos em {formato}",
-            "Manter o ritmo de acesso para não perder a constância",
+            T(f"Continuar a trilha priorizando recursos em {formato}",
+              f"Continue the track prioritizing {formato} resources"),
+            T("Manter o ritmo de acesso para não perder a constância",
+              "Keep up your access rhythm to stay consistent"),
         ],
         "formato_preferido": formato,
         "justificativa": (
@@ -172,8 +215,8 @@ class BedrockClientMock:
     não precise mudar quando a chamada real for ligada.
     """
 
-    def invoke_model(self, model_id, system_prompt, user_prompt, profile):
-        recommendation = _apply_rules(profile)
+    def invoke_model(self, model_id, system_prompt, user_prompt, profile, lang="pt"):
+        recommendation = _apply_rules(profile, lang)
         # Envelope idêntico ao retornado pelo Bedrock/Anthropic Messages API
         return {
             "id": f"msg_mock_{uuid.uuid4().hex[:12]}",
@@ -191,13 +234,15 @@ class BedrockClientMock:
 _client = BedrockClientMock()
 
 
-def get_recommendation(profile):
+def get_recommendation(profile, lang="pt"):
     """Ponto de entrada do agente: perfil do aluno -> recomendação estruturada.
 
+    `lang` (Fase 4 — A12): idioma dos campos voltados ao aluno, tanto no mock
+    (regras bilíngues) quanto na LLM real (instrução no system prompt).
     O fluxo (montar prompts -> invocar modelo -> parsear o JSON do texto da
     resposta) é exatamente o que será usado com o Bedrock real.
     """
-    system_prompt = build_system_prompt()
+    system_prompt = build_system_prompt(lang)
     user_prompt = build_user_prompt(profile)
 
     # Caminho REAL (Bedrock/Anthropic) quando configurado. O system prompt já
@@ -222,6 +267,7 @@ def get_recommendation(profile):
         system_prompt=system_prompt,
         user_prompt=user_prompt,
         profile=profile,
+        lang=lang,
     )
 
     # Mesmo parsing que será usado com a resposta real do Claude

@@ -218,7 +218,7 @@ export async function login(ra: string, password: string): Promise<Session> {
 export const getMe = () => request<StudentProfile>(withLang("/student/me"));
 
 export const getEdubotRecommendation = () =>
-  request<{ recommendation: Recommendation }>("/edubot/recommendation");
+  request<{ recommendation: Recommendation }>(withLang("/edubot/recommendation"));
 
 // A13 — proatividade: intervenções NÃO LIDAS que o EduBot criou por conta
 // própria (pós-quiz, conclusão de OVA, varredura agendada). O dashboard as
@@ -327,13 +327,13 @@ export const saveOVAProgress = (
     completed?: boolean;
   },
   opts: { keepalive?: boolean } = {}
-) => request<string>("/progress/ova", { method: "POST", body: data, keepalive: opts.keepalive });
+) => request<string>(withLang("/progress/ova"), { method: "POST", body: data, keepalive: opts.keepalive });
 
 export const getOVAQuestions = (ovaId: number, studentId: number) =>
   request<OvaQuestion[]>(withLang("/question/ova"), { method: "POST", body: { ova_id: ovaId, student_id: studentId } });
 
 export const answerQuestion = (studentId: number, questionId: number, selected: string) =>
-  request<{ is_correct: boolean }>("/question/answer", {
+  request<{ is_correct: boolean }>(withLang("/question/answer"), {
     method: "POST",
     body: { student_id: studentId, question_id: questionId, selected }
   });
@@ -399,7 +399,7 @@ export interface TutorReply {
 // Envia a pergunta + o histórico + o material (context) do OVA. O backend
 // responde como tutor preso ao conteúdo (ver edubot_agent/tutor.py).
 export const tutorChat = (ovaId: number, context: string, messages: TutorMessage[]) =>
-  request<TutorReply>("/edubot/tutor-chat", {
+  request<TutorReply>(withLang("/edubot/tutor-chat"), {
     method: "POST",
     body: { ova_id: ovaId, context, messages }
   });

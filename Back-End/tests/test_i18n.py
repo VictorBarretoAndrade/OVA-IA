@@ -49,3 +49,44 @@ def test_grading_unaffected_by_lang(client, auth, seeded_db):
     r = client.post("/question/answer?lang=en", headers=auth(1),
                     data=json.dumps({"question_id": 1, "selected": "b"}))
     assert json.loads(r.data.decode())["is_correct"] is True
+
+
+def test_agent_mock_responds_in_lang():
+    # Fase 4c: as 6 regras do mock respondem no idioma do aluno; a
+    # justificativa (para o professor) permanece em PT.
+    from edubot.agent import get_recommendation
+    profile = {
+        "estudante": {"nome": "Ana Souza"},
+        "dias_sem_acesso": 30,  # dispara a Regra 1
+        "recursos": {"percentual_consumido": 0},
+        "quiz": {"taxa_erro": None},
+        "atividades_pendentes": 0,
+        "competencias": [],
+    }
+    rec_pt = get_recommendation(profile, lang="pt")
+    rec_en = get_recommendation(profile, lang="en")
+    assert rec_pt["tipo"] == rec_en["tipo"] == "plano_retomada"
+    assert "Sentimos sua falta" in rec_pt["mensagem_aluno"]
+    assert "missed you" in rec_en["mensagem_aluno"]
+    assert rec_en["justificativa"].startswith("Regra 1")  # professor: PT
+
+
+def test_tutor_mock_responds_in_lang():
+    from edubot.agent.tutor import tutor_reply
+    context = "## Qubits\nUm qubit pode estar em superposicao de estados."
+    messages = [{"role": "user", "content": "o que e um qubit em superposicao?"}]
+    pt = tutor_reply("OVA Q", context, messages, lang="pt")
+    en = tutor_reply("OVA Q", context, messages, lang="en")
+    assert "Boa pergunta" in pt["reply"]
+    assert "Good question" in en["reply"]
+
+
+def test_event_intervention_created_in_request_lang(client, auth, seeded_db):
+    from edubot.data.models.interventions import Interventions
+    # Erro no quiz com UI em EN -> intervenção redigida em inglês.
+    client.post("/question/answer?lang=en", headers=auth(1),
+                data=json.dumps({"question_id": 1, "selected": "a"}))
+    it = Interventions.select().where(Interventions.student_id == 1).first()
+    assert it is not None
+    # Regra 2 (trilha mínima) dispara para perfil zerado — mensagem em EN
+    assert "resources" in it.description or "you" in it.description.lower()

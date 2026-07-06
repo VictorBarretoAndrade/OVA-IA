@@ -23,6 +23,8 @@ from edubot.data.models.ovas import OVAs
 from edubot.data.models.competencies import Competencies
 
 from edubot.api.auth import require_auth
+from edubot.api.http import get_lang
+from edubot.i18n import tr
 from edubot.services.student_context import build_student_profile
 from edubot.agent import get_recommendation
 from edubot.agent.tutor import tutor_reply
@@ -37,11 +39,12 @@ app_edubot = Blueprint("edubot", __name__)
 @require_auth
 def edubot_recommendation():
     try:
+        lang = get_lang()
         # 1. Monta o perfil completo do aluno logado (contexto 4.2)
-        profile = build_student_profile(g.student)
+        profile = build_student_profile(g.student, lang=lang)
 
-        # 2. Chama o agente (mock Bedrock por enquanto — ver edubot_agent/)
-        recommendation = get_recommendation(profile)
+        # 2. Chama o agente no idioma do aluno (Fase 4 — A12)
+        recommendation = get_recommendation(profile, lang=lang)
 
         # 3. Persiste como intervenção para compor o histórico — deduplicado (A8).
         #    O endpoint é um GET consultado a cada clique do aluno; sem dedup,
@@ -115,15 +118,17 @@ def edubot_tutor_chat():
     if not messages or messages[-1]["role"] != "user":
         return json.dumps({"Error": "A última mensagem deve ser do aluno (user)."}), 400
 
+    lang = get_lang()
     result = tutor_reply(
-        titulo=ova.ova_name,
+        titulo=tr(ova.ova_name, ova.ova_name_en, lang),
         context=data.get("context") or "",
         messages=messages,
+        lang=lang,
     )
     return json.dumps({
         "reply": result["reply"],
         "ova_id": ova_id,
-        "ova_name": ova.ova_name,
+        "ova_name": tr(ova.ova_name, ova.ova_name_en, lang),
         "model_id": result["model_id"],
         "mock": result["mock"],
         "sources": result.get("sources", []),
