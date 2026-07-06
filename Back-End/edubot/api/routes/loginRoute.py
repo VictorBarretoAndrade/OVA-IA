@@ -14,7 +14,8 @@ from edubot.data.models.students import Students
 from edubot.data.models.courses import Courses
 
 # MELHORIA (4.2): token de sessão emitido no login (ver api/auth.py)
-from edubot.api.auth import generate_token
+# Fase 4d (A5): verificação por hash PBKDF2 + upgrade-on-login do seed legado
+from edubot.api.auth import generate_token, hash_password, is_hashed, verify_password
 
 # Create a route blueprint as a reusable component
 app_login = Blueprint('login', __name__)
@@ -31,10 +32,17 @@ def login():
             
             # Retrieve the student trying to log in
             student = Students.select().where(Students.ra == login_data["ra"]).first()
-            
-            # If credentials don't match, return an error response
-            if (not student or login_data["ra"] == "") or login_data["password"] != student.student_password:
+
+            # Fase 4d (A5): a comparação em texto plano virou verificação por
+            # hash. Senhas legadas do seed (texto plano) ainda são aceitas UMA
+            # vez e imediatamente reescritas como hash (upgrade-on-login).
+            password = login_data.get("password") or ""
+            if (not student or login_data["ra"] == "") or not verify_password(password, student.student_password):
                 return "Wrong RA or Password", 401
+
+            if not is_hashed(student.student_password):
+                student.student_password = hash_password(password)
+                student.save()
             
             # Retrieve the student's course
             course = Courses.select().where(Courses.course_id == student.course_id).first()

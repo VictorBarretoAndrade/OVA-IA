@@ -13,13 +13,13 @@
 #
 # O segredo vem da variável de ambiente EDUBOT_SECRET (defina-a em produção;
 # o default existe só para desenvolvimento local).
-import sys, os
-
+import os
 
 import base64
 import hashlib
 import hmac
 import json
+import secrets
 import time
 from functools import wraps
 
@@ -29,6 +29,44 @@ from edubot.data.models.students import Students
 
 SECRET = os.environ.get("EDUBOT_SECRET", "dev-secret-change-me")
 TOKEN_TTL_SECONDS = 7 * 24 * 3600  # 7 days
+
+# ---------------------------------------------------------------------------
+# Hash de senha (Fase 4d — A5). Stdlib apenas: PBKDF2-HMAC-SHA256 com salt por
+# usuário. Formato armazenado: "pbkdf2_sha256$<iterações>$<salt_hex>$<hash_hex>".
+# Senhas legadas (texto plano do seed) são aceitas UMA vez e reescritas como
+# hash no próprio login (upgrade-on-login) — ver loginRoute.
+# ---------------------------------------------------------------------------
+PBKDF2_ITERATIONS = 260_000
+_HASH_PREFIX = "pbkdf2_sha256$"
+
+
+def hash_password(password):
+    """Gera o hash PBKDF2 com salt aleatório, pronto para armazenar."""
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac(
+        "sha256", password.encode(), bytes.fromhex(salt), PBKDF2_ITERATIONS).hex()
+    return f"{_HASH_PREFIX}{PBKDF2_ITERATIONS}${salt}${digest}"
+
+
+def is_hashed(stored):
+    """True se o valor armazenado já é um hash (não texto plano legado)."""
+    return bool(stored) and stored.startswith(_HASH_PREFIX)
+
+
+def verify_password(password, stored):
+    """Confere a senha contra o valor armazenado (hash ou texto plano legado)."""
+    if not stored:
+        return False
+    if not is_hashed(stored):
+        # Legado (seed): comparação direta; o chamador deve fazer o upgrade.
+        return hmac.compare_digest(password, stored)
+    try:
+        _, iterations, salt, expected = stored.split("$", 3)
+        digest = hashlib.pbkdf2_hmac(
+            "sha256", password.encode(), bytes.fromhex(salt), int(iterations)).hex()
+        return hmac.compare_digest(digest, expected)
+    except (ValueError, TypeError):
+        return False
 
 
 def generate_token(student_id):
