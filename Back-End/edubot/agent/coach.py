@@ -1,21 +1,19 @@
 # MELHORIA (Roteiro Cena 3) — Mensagem falada do EduBot ("coach") gerada por IA.
 #
 # Gera um texto CURTO e HUMANO sobre o progresso do aluno, para o personagem
-# virtualizado falar. Usa a AWS Bedrock via API key (bearer token) quando
-# disponível (variável AWS_BEARER_TOKEN_BEDROCK) — SÓ SOB DEMANDA e com modelo
-# barato + poucos tokens, para controlar custo. Se a chave não existir, falhar
-# ou expirar, devolve None e o frontend usa o texto determinístico local.
+# virtualizado falar. Fase 3d: passou a usar a MESMA camada de provider
+# (edubot.agent.llm) dos outros agentes — antes tinha um caminho boto3
+# invoke_model paralelo. Continua SOB DEMANDA, com modelo barato (override) e
+# poucos tokens para controlar custo. Sem provider real configurado (ou em
+# falha), devolve None e o frontend usa o texto determinístico local.
 import json
 import os
 
-# Modelo barato com throughput on-demand na Bedrock (controle de custo).
-COACH_MODEL = os.getenv("EDUBOT_COACH_MODEL", "anthropic.claude-3-haiku-20240307-v1:0")
-REGION = os.getenv("AWS_REGION", "us-east-1")
+from edubot.agent import llm
+
+# Modelo barato (override do modelo padrão do provider) — controle de custo.
+COACH_MODEL = os.getenv("EDUBOT_COACH_MODEL", "claude-haiku-4-5-20251001")
 MAX_TOKENS = int(os.getenv("EDUBOT_COACH_MAX_TOKENS", "220"))
-
-
-def has_bedrock_key():
-    return bool(os.getenv("AWS_BEARER_TOKEN_BEDROCK"))
 
 
 def _profile_digest(profile):
@@ -47,7 +45,7 @@ _SYSTEM = (
 
 def coach_message(profile, lang="pt"):
     """Devolve (texto, model_id) ou None se a IA não estiver disponível."""
-    if not has_bedrock_key():
+    if not llm.is_real():
         return None
 
     idioma = "inglês" if lang == "en" else "português do Brasil"
@@ -58,19 +56,14 @@ def coach_message(profile, lang="pt"):
     )
 
     try:
-        import boto3  # importado só quando a IA real é usada
-        client = boto3.client("bedrock-runtime", region_name=REGION)
-        body = json.dumps({
-            "anthropic_version": "bedrock-2023-05-31",
-            "max_tokens": MAX_TOKENS,
-            "system": _SYSTEM,
-            "messages": [{"role": "user", "content": user}],
-        })
-        resp = client.invoke_model(modelId=COACH_MODEL, body=body)
-        data = json.loads(resp["body"].read())
-        text = "".join(b.get("text", "") for b in data.get("content", [])
-                       if b.get("type") == "text").strip()
-        return (text, data.get("model", COACH_MODEL)) if text else None
+        resp = llm.messages_create(
+            system=_SYSTEM,
+            messages=[{"role": "user", "content": user}],
+            max_tokens=MAX_TOKENS,
+            model=COACH_MODEL,  # modelo barato só para a fala do coach
+        )
+        text = "".join(b.text for b in resp.content if b.type == "text").strip()
+        return (text, resp.model) if text else None
     except Exception as err:  # noqa: BLE001 — degrada para o texto local
-        print(f"[coach] Bedrock indisponível ({err}); usando texto local.")
+        print(f"[coach] LLM indisponível ({err}); usando texto local.")
         return None

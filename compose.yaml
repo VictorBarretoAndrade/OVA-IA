@@ -56,10 +56,10 @@ services:
       AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-}
       AWS_SESSION_TOKEN: ${AWS_SESSION_TOKEN:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      # Chave de API da Bedrock (bearer) — usada SÓ pela mensagem do coach,
-      # sob demanda e com modelo barato (controle de custo).
-      AWS_BEARER_TOKEN_BEDROCK: ${AWS_BEARER_TOKEN_BEDROCK:-}
-      EDUBOT_COACH_MODEL: ${EDUBOT_COACH_MODEL:-us.anthropic.claude-haiku-4-5-20251001-v1:0}
+      # Coach (fala do EduBot): usa a MESMA camada de provider (llm.py) dos
+      # outros agentes — Fase 3d unificou o caminho, sem boto3 paralelo. Só muda
+      # o modelo (mais barato) via override. Sem provider real => texto local.
+      EDUBOT_COACH_MODEL: ${EDUBOT_COACH_MODEL:-claude-haiku-4-5-20251001}
     ports:
       - 5010:8090
     volumes:

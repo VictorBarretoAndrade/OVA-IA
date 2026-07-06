@@ -38,10 +38,15 @@ def is_real():
     return PROVIDER in ("bedrock", "anthropic")
 
 
-def model_id():
-    """Id do modelo já no formato exigido pelo provider."""
-    mid = DEFAULT_MODEL
-    if PROVIDER == "bedrock" and not mid.startswith("anthropic."):
+def model_id(model=None):
+    """Id do modelo já no formato exigido pelo provider.
+
+    `model` permite sobrescrever o modelo padrão numa chamada específica (ex.: o
+    coach usa um modelo mais barato). Na Bedrock o id ganha o prefixo
+    'anthropic.' se ainda não tiver (ids de inference profile como 'us.anthropic.'
+    já vêm completos e são preservados)."""
+    mid = model or DEFAULT_MODEL
+    if PROVIDER == "bedrock" and not mid.startswith(("anthropic.", "us.anthropic.", "eu.anthropic.")):
         mid = "anthropic." + mid
     return mid
 
@@ -71,15 +76,16 @@ def get_client():
     return _client
 
 
-def messages_create(system, messages, tools=None, max_tokens=None):
+def messages_create(system, messages, tools=None, max_tokens=None, model=None):
     """Chamada única à Messages API (vale para Bedrock e Anthropic).
 
-    Devolve o objeto de resposta do SDK (com .content[], .stop_reason, .model).
-    Quem chama decide como ler (texto puro ou loop de tool-use).
+    `model` sobrescreve o modelo padrão nesta chamada (ex.: coach com modelo
+    barato). Devolve o objeto de resposta do SDK (com .content[], .stop_reason,
+    .model). Quem chama decide como ler (texto puro ou loop de tool-use).
     """
     client = get_client()
     kwargs = {
-        "model": model_id(),
+        "model": model_id(model),
         "max_tokens": max_tokens or MAX_TOKENS,
         "system": system,
         "messages": messages,
