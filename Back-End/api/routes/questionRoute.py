@@ -7,7 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data/models')))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data')))
 
 # Import necessary libraries
-from flask import Blueprint, request
+from flask import Blueprint, request, g
 from flask_cors import cross_origin
 from peewee import PeeweeException # ORM library
 import json
@@ -15,8 +15,9 @@ import json
 # Import the necessary ORM classes
 from questions import Questions
 from answers import Answers
-from students import Students
 from attempts import Attempts
+
+from auth import require_auth
 
 # Create a route blueprint as a reusable component
 app_question = Blueprint("question", __name__)
@@ -64,6 +65,9 @@ def show_all_questions():
 @app_question.route("/question/ova", methods=["POST"])
 # Activate cross-origin to accept requests from another domain
 @cross_origin()
+# A3/B4: exige token. Antes a rota aceitava student_id do payload e revelava
+# quais questões QUALQUER aluno já tinha acertado. Agora o aluno vem do token.
+@require_auth
 def show_ova_questions():
     if request.method == "POST":
         try:
@@ -72,8 +76,8 @@ def show_ova_questions():
             questions = Questions.select().where(Questions.ova_id == question_data["ova_id"])
             questions_ids = [question.question_id for question in questions]
 
-            # Get all the questions of the ova given by the student
-            answers_ids = Answers.select(Answers.question_id).where(Answers.student_id == question_data["student_id"], Answers.question_id.in_(questions_ids))
+            # Quais dessas questões o aluno LOGADO já acertou (do token, não do payload)
+            answers_ids = Answers.select(Answers.question_id).where(Answers.student_id == g.student, Answers.question_id.in_(questions_ids))
             answers_ids = [id.question_id.question_id for id in answers_ids]
 
             question_list = []
@@ -104,15 +108,18 @@ def show_ova_questions():
 # Grades an answer sent by the student and records the attempt.
 @app_question.route("/question/answer", methods=['POST'])
 @cross_origin()
+# A3: exige token. Antes gravava attempts em nome de QUALQUER student_id do
+# payload (forjável anonimamente por curl), inflando a taxa_erro de outro aluno.
+@require_auth
 def answer_question():
     if request.method == 'POST':
         try:
             answer_data = request.get_json()[0]
 
-            student = Students.select().where(Students.student_id == answer_data["student_id"]).first()
+            student = g.student  # A3: do token, não do payload
             question = Questions.select().where(Questions.question_id == answer_data["question_id"]).first()
-            if student is None or question is None:
-                return json.dumps({"Error": "Unknown student_id or question_id"}), 400
+            if question is None:
+                return json.dumps({"Error": "Unknown question_id"}), 400
 
             # BUGFIX (B5): grading used to happen in the browser (the client sent
             # an "is_correct" flag computed against a data-correct DOM attribute).
@@ -121,21 +128,28 @@ def answer_question():
             selected = str(answer_data.get("selected", "")).strip().lower()
             is_correct = selected == str(question.answer).strip().lower()
 
-            # IMPROVEMENT (Passo 3): every attempt (right or wrong) is now persisted
-            # in the "attempts" table — it existed but was never written to. Wrong
-            # attempts feed the EduBot rule "errou mais de 50% do quiz".
-            Attempts.create(
-                student_id = student,
-                question_id = question,
-                is_correct = is_correct
-            )
-
-            # Keep the original behavior: store the first correct answer in "answers"
-            answer = Answers.select(Answers.question_id).where(
+            # A7 — idempotência: o front reenviava TODAS as questões a cada clique
+            # em "Verificar", e cada clique gravava um Attempt novo (dois cliques =
+            # tentativas em dobro, distorcendo a taxa_erro). Se o aluno já ACERTOU
+            # esta questão (existe em `answers`) e reenvia a mesma resposta correta,
+            # não registramos uma nova tentativa. Retentativas reais (mudar a
+            # resposta / tentar de novo após errar) continuam contando.
+            already_correct = Answers.select().where(
                 Answers.question_id == question.question_id,
                 Answers.student_id == student.student_id
             ).first()
-            if is_correct and answer is None:
+
+            if not (is_correct and already_correct is not None):
+                # IMPROVEMENT (Passo 3): tentativas (certas/erradas) alimentam a
+                # regra do EduBot "errou mais de 50% do quiz".
+                Attempts.create(
+                    student_id = student,
+                    question_id = question,
+                    is_correct = is_correct
+                )
+
+            # Keep the original behavior: store the first correct answer in "answers"
+            if is_correct and already_correct is None:
                 Answers.create(
                     student_id = student,
                     question_id = question

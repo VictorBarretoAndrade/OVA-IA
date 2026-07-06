@@ -63,8 +63,18 @@ def ova_resources(ova_id):
         return json.dumps({"Error": f"{err}"}), 500
 
 
-# Upserts the per-OVA reading progress (read_time seconds, % scrolled, completed).
-# Values only move forward (max) so an old tab can't downgrade the progress.
+# Upserts the per-OVA reading progress.
+#
+# CONTRATO NOVO (A1) — tempo de leitura por DELTA, acumulado no servidor:
+#   seconds_delta : segundos lidos DESDE o último sync (o servidor SOMA).
+# O front envia o delta a cada ~15s e um último no unload. Antes o front
+# mandava o tempo ABSOLUTO da sessão e o backend fazia max(): ler 10min hoje e
+# 10min amanhã registrava 10min (a maior sessão), não 20 — a métrica central do
+# rastreamento era estruturalmente errada.
+#
+# `read_time` (absoluto) ainda é aceito como caminho legado (leitor jQuery, que
+# manda o valor absoluto): sem seconds_delta, cai no max() antigo até o legado
+# ser aposentado (Fase 5). perc_scrolled continua sendo marca d'água (max).
 @app_progress.route("/progress/ova", methods=["POST"])
 @cross_origin()
 @require_auth
@@ -77,17 +87,26 @@ def save_ova_progress():
 
         progress = OVAProgress.get_or_none(
             (OVAProgress.student_id == g.student) & (OVAProgress.ova_id == ova))
-        read_time = int(data.get("read_time", 0) or 0)
+        # delta é o caminho novo; read_time absoluto é o legado
+        seconds_delta = data.get("seconds_delta")
+        seconds_delta = max(0, int(seconds_delta)) if seconds_delta is not None else None
+        read_time_abs = int(data.get("read_time", 0) or 0)
         perc_scrolled = min(100, int(data.get("perc_scrolled", 0) or 0))
         completed = bool(data.get("completed", False))
 
         if progress is None:
+            initial_read = seconds_delta if seconds_delta is not None else read_time_abs
             OVAProgress.create(
                 student_id=g.student, ova_id=ova,
-                read_time=read_time, perc_scrolled=perc_scrolled,
+                read_time=initial_read, perc_scrolled=perc_scrolled,
                 completed=completed, last_access=datetime.datetime.now())
         else:
-            progress.read_time = max(progress.read_time or 0, read_time)
+            if seconds_delta is not None:
+                # acumula (contrato novo)
+                progress.read_time = (progress.read_time or 0) + seconds_delta
+            else:
+                # legado: valor absoluto, nunca retrocede
+                progress.read_time = max(progress.read_time or 0, read_time_abs)
             progress.perc_scrolled = max(progress.perc_scrolled or 0, perc_scrolled)
             progress.completed = progress.completed or completed
             progress.last_access = datetime.datetime.now()

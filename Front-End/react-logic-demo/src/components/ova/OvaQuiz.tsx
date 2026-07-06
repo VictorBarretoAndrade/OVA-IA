@@ -6,8 +6,8 @@ As questões vêm de POST /question/ova (SEM gabarito) e a correção é server-
 em POST /question/answer — mesma garantia anti-fraude do componente Quiz da aba.
 */
 import { CheckCircle2, XCircle } from "lucide-react";
-import { useEffect, useState } from "react";
-import { OvaQuestion, answerQuestion, getOVAQuestions } from "../../services/api";
+import { useEffect, useRef, useState } from "react";
+import { OvaQuestion, answerQuestion, getOVAQuestions, registerInteraction } from "../../services/api";
 import { useToast } from "../ui/Toast";
 import { useT } from "../../i18n";
 
@@ -25,6 +25,9 @@ export const OvaQuiz = ({ ovaId, studentId, onTracked }: OvaQuizProps) => {
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [feedback, setFeedback] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
+  // Última alternativa submetida por questão — evita reenviar a mesma resposta a
+  // cada clique em "Verificar", que gravava tentativas em dobro no servidor (A7).
+  const submittedRef = useRef<Record<number, number>>({});
   const toast = useToast();
 
   useEffect(() => {
@@ -39,14 +42,19 @@ export const OvaQuiz = ({ ovaId, studentId, onTracked }: OvaQuizProps) => {
 
   const verify = async () => {
     setSubmitting(true);
-    const next: Record<number, boolean> = {};
+    const next: Record<number, boolean> = { ...feedback };
     let failed = false;
+    let submittedAny = false;
     for (const question of questions) {
       const selected = answers[question.question_id];
       if (selected === undefined) continue;
+      // Só reenvia se a resposta mudou desde a última submissão (A7)
+      if (submittedRef.current[question.question_id] === selected) continue;
       try {
         const graded = await answerQuestion(studentId, question.question_id, LETTERS[selected]);
         next[question.question_id] = graded.is_correct;
+        submittedRef.current[question.question_id] = selected;
+        submittedAny = true;
       } catch {
         failed = true;
       }
@@ -54,7 +62,11 @@ export const OvaQuiz = ({ ovaId, studentId, onTracked }: OvaQuizProps) => {
     setFeedback(next);
     setSubmitting(false);
     if (failed) toast.error(t("Algumas respostas não puderam ser corrigidas. Verifique a conexão.", "Some answers couldn't be graded. Check your connection."));
-    onTracked();
+    // Só atualiza o perfil se algo novo foi de fato submetido (A7/A9)
+    if (submittedAny) {
+      registerInteraction(ovaId, "quiz_submitted").catch(() => undefined);
+      onTracked();
+    }
   };
 
   if (questions.length === 0) {

@@ -6,7 +6,7 @@ sys.path.append(root)
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data/models')))
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), 'data')))
 
-from flask import Blueprint, request
+from flask import Blueprint, request, g
 from flask_cors import cross_origin
 from peewee import PeeweeException, fn
 import json
@@ -23,23 +23,34 @@ from ova_progress import OVAProgress
 from attempts import Attempts
 from interventions import Interventions
 
+from auth import require_auth
+# A15: fonte única de inatividade (multi-sinal) — evita a cópia divergente que
+# quebrava com o SQLite (string − date = TypeError) e só olhava `interactions`.
+from services.student_context import _days_without_access
+
 app_report = Blueprint("report", __name__)
 
 
 @app_report.route('/student/report/<int:student_id>', methods=['GET'])
 @cross_origin()
+# A3: exige token e restringe o acesso. Antes /student/report/<id> devolvia
+# nome, desempenho e histórico de QUALQUER aluno sem login. Agora só o próprio
+# aluno ou um tutor/admin pode ver o relatório de um aluno.
+@require_auth
 def student_report(student_id):
     try:
+        requester = g.student
+        is_staff = getattr(requester, "role", "aluno") in ("tutor", "admin") or bool(getattr(requester, "is_admin", False))
+        if requester.student_id != student_id and not is_staff:
+            return json.dumps({'error': 'forbidden'}), 403
+
         # Basic student info
         student = Students.get_or_none(Students.student_id == student_id)
         if not student:
             return json.dumps({'error': 'student not found'}), 404
 
-        # dias_sem_acesso
-        last_inter = Interactions.select(fn.MAX(Interactions.interaction_date)).where(Interactions.student_id == student).scalar()
-        dias_sem_acesso = None
-        if last_inter:
-            dias_sem_acesso = (datetime.date.today() - last_inter).days
+        # dias_sem_acesso (multi-sinal, fonte única em student_context — A2/A15)
+        dias_sem_acesso = _days_without_access(student)
 
         # recursos_consumidos_percentual (avg perc_scrolled)
         avg_perc = OVAProgress.select(fn.AVG(OVAProgress.perc_scrolled)).where(OVAProgress.student_id == student).scalar()

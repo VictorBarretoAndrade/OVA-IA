@@ -4,13 +4,14 @@ navegador: as questões vêm de POST /question/ova (SEM o gabarito) e cada
 resposta é corrigida pelo SERVIDOR via POST /question/answer, que também
 registra a tentativa (alimentando a regra "errou > 50% do quiz" do EduBot).
 */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   OvaQuestion,
   StudentProfile,
   answerQuestion,
   getOVAQuestions,
-  getSession
+  getSession,
+  registerInteraction
 } from "../services/api";
 import { useToast } from "./ui/Toast";
 import { useT } from "../i18n";
@@ -41,12 +42,16 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
 
   const session = getSession();
   const toast = useToast();
+  // Última alternativa submetida por questão — evita reenviar a mesma resposta
+  // a cada clique em "Finalizar", que duplicava as tentativas no servidor (A7).
+  const submittedRef = useRef<Record<number, number>>({});
 
   useEffect(() => {
     if (!activeOvaId || !session) return;
     setAnswers({});
     setFeedback({});
     setResult(null);
+    submittedRef.current = {};
     getOVAQuestions(activeOvaId, session.student_id)
       .then(setQuestions)
       .catch(() => setQuestions([]));
@@ -56,18 +61,21 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
   const finishQuiz = async () => {
     if (!session) return;
     setSubmitting(true);
-    const newFeedback: Record<number, boolean> = {};
-    let correct = 0;
+    const newFeedback: Record<number, boolean> = { ...feedback };
     let failed = false;
+    let submittedAny = false;
 
     // Cada questão é corrigida pelo backend — o gabarito nunca chega ao navegador
     for (const question of questions) {
       const selectedIndex = answers[question.question_id];
       const selectedLetter = LETTERS[selectedIndex];
+      // Só reenvia se a resposta mudou desde a última submissão (A7)
+      if (submittedRef.current[question.question_id] === selectedIndex) continue;
       try {
         const graded = await answerQuestion(session.student_id, question.question_id, selectedLetter);
         newFeedback[question.question_id] = graded.is_correct;
-        if (graded.is_correct) correct += 1;
+        submittedRef.current[question.question_id] = selectedIndex;
+        submittedAny = true;
       } catch (error) {
         console.error(error);
         failed = true;
@@ -76,13 +84,18 @@ export const Quiz = ({ profile, onTracked }: QuizProps) => {
 
     if (failed) toast.error(t("Algumas respostas não puderam ser corrigidas. Verifique a conexão.", "Some answers couldn't be graded. Check your connection."));
     setFeedback(newFeedback);
+    // Nota calculada sobre TODAS as respostas (não só as recém-enviadas)
+    const correct = questions.reduce((acc, q) => acc + (newFeedback[q.question_id] ? 1 : 0), 0);
     setResult({
       correct,
       wrong: questions.length - correct,
       score: Number(((correct / Math.max(questions.length, 1)) * 10).toFixed(1))
     });
     setSubmitting(false);
-    onTracked();
+    if (submittedAny) {
+      registerInteraction(activeOvaId, "quiz_submitted").catch(() => undefined);
+      onTracked();
+    }
   };
 
   return (

@@ -34,6 +34,9 @@ import { TutorChat } from "./TutorChat";
 
 const COMPLETED_PERC = 90;
 const SYNC_INTERVAL_MS = 15000;
+// Página que cabe na viewport (não rola) conta como lida após um tempo mínimo
+// de permanência (A6) — sem isso, um OVA curto nunca completava (scroll ficava 0).
+const SHORT_PAGE_MIN_SECONDS = 20;
 
 interface OvaInfo {
   ova_id: number;
@@ -58,6 +61,9 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
     () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches
   );
   const [progress, setProgress] = useState(0);
+  // Elemento do artigo — o scroll de leitura é medido POR CONTEÚDO, não pela
+  // janela (A6), para não confundir altura de tela com consumo do texto.
+  const contentRef = useRef<HTMLDivElement>(null);
   const toast = useToast();
   const t = useT();
   const ct = useContentT();
@@ -85,56 +91,98 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
   // assistente / clicar em carrossel/acordeão — abrir o OVA (ação central do
   // estudo) não gerava sinal. Agora toda sessão de leitura marca presença.
   useEffect(() => {
-    registerInteraction(studentId, ova.ova_id, "ova_opened").catch(() => undefined);
-  }, [ova.ova_id, studentId]);
+    registerInteraction(ova.ova_id, "ova_opened").catch(() => undefined);
+  }, [ova.ova_id]);
 
-  // Rastreio de leitura (espelha ova.js): acumula tempo e o scroll máximo e
-  // persiste periodicamente em /progress/ova. No fim (voltar/desmontar) faz um
-  // último sync e atualiza o perfil para o dashboard refletir o progresso.
+  // Rastreio de leitura (A1/A6/B3).
+  //   - Tempo por DELTA: acumula os segundos não sincronizados e os envia como
+  //     `seconds_delta`; o servidor SOMA (antes mandava o absoluto e o backend
+  //     fazia max(), então dias distintos não somavam).
+  //   - Scroll POR CONTEÚDO: mede o avanço dentro do artigo, não da janela.
+  //   - Página curta (não rola): completa por tempo mínimo de permanência.
+  //   - Flush final com keepalive no unload para não perder os últimos segundos.
   useEffect(() => {
-    const timeRef = { current: 0 };
+    const unsyncedRef = { current: 0 };   // segundos ainda não enviados (delta)
+    const sessionSecondsRef = { current: 0 }; // segundos desta sessão (p/ página curta)
     const maxScrollRef = { current: 0 };
 
-    const persist = (refreshProfile: boolean) => {
-      saveOVAProgress({
-        ova_id: ova.ova_id,
-        read_time: timeRef.current,
-        perc_scrolled: maxScrollRef.current,
-        completed: maxScrollRef.current >= COMPLETED_PERC
-      })
-        .then(() => refreshProfile && onTracked())
-        .catch(() => undefined);
+    const contentScrollable = () => {
+      const el = contentRef.current;
+      const h = el ? el.scrollHeight : document.documentElement.scrollHeight;
+      return h > window.innerHeight + 8;
     };
 
-    const onScroll = () => {
-      const doc = document.documentElement;
-      const height = doc.scrollHeight - doc.clientHeight;
-      const perc = height > 0 ? Math.min(100, Math.round((doc.scrollTop / height) * 100)) : 0;
+    const readingPerc = () => {
+      const el = contentRef.current;
+      if (!el) return 0;
+      const total = el.scrollHeight;
+      if (total <= 0) return 0;
+      const seen = window.scrollY + window.innerHeight - el.offsetTop;
+      return Math.max(0, Math.min(100, Math.round((seen / total) * 100)));
+    };
+
+    const bumpProgress = (perc: number) => {
       if (perc > maxScrollRef.current) {
         maxScrollRef.current = perc;
         setProgress(perc);
       }
     };
 
+    const isCompleted = () =>
+      contentScrollable()
+        ? maxScrollRef.current >= COMPLETED_PERC
+        : sessionSecondsRef.current >= SHORT_PAGE_MIN_SECONDS;
+
+    const persist = (refreshProfile: boolean, keepalive = false) => {
+      const delta = unsyncedRef.current;
+      unsyncedRef.current = 0;
+      saveOVAProgress(
+        {
+          ova_id: ova.ova_id,
+          seconds_delta: delta,
+          perc_scrolled: maxScrollRef.current,
+          completed: isCompleted()
+        },
+        { keepalive }
+      )
+        .then(() => refreshProfile && onTracked())
+        // Se falhar (e não for o flush final), devolve o delta para reenviar depois
+        .catch(() => {
+          if (!keepalive) unsyncedRef.current += delta;
+        });
+    };
+
+    const onScroll = () => {
+      if (contentScrollable()) bumpProgress(readingPerc());
+    };
+
     const ticker = window.setInterval(() => {
-      timeRef.current += 1;
+      sessionSecondsRef.current += 1;
+      unsyncedRef.current += 1;
+      // Em página curta o progresso é por tempo (não há scroll a medir)
+      if (!contentScrollable()) {
+        bumpProgress(Math.min(100, Math.round((sessionSecondsRef.current / SHORT_PAGE_MIN_SECONDS) * 100)));
+      }
     }, 1000);
     const syncer = window.setInterval(() => persist(false), SYNC_INTERVAL_MS);
+    const onPageHide = () => persist(false, true);
     window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("pagehide", onPageHide);
     onScroll();
 
     return () => {
       window.clearInterval(ticker);
       window.clearInterval(syncer);
       window.removeEventListener("scroll", onScroll);
-      persist(true);
+      window.removeEventListener("pagehide", onPageHide);
+      persist(true, true);
     };
   }, [ova.ova_id, onTracked]);
 
   const tutorContext = useMemo(() => (content ? ovaContextText(content) : ""), [content]);
 
   const logInteraction = (label: string) => {
-    registerInteraction(studentId, ova.ova_id, label).catch(() => undefined);
+    registerInteraction(ova.ova_id, label).catch(() => undefined);
   };
 
   const trackMedia = (resource: OvaResource) => (state: MediaProgress) => {
@@ -169,7 +217,7 @@ export const OvaReader = ({ ova, studentId, onBack, onTracked }: OvaReaderProps)
 
   return (
     <div className="flex gap-6">
-      <div className="min-w-0 flex-1">
+      <div ref={contentRef} className="min-w-0 flex-1">
         {/* Cabeçalho da página do OVA: voltar, título, progresso e Tutor IA */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">

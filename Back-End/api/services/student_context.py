@@ -39,18 +39,45 @@ MEDIA_COMPLETED_PERC = 90          # video/podcast considered concluded at >= 90
 TEXT_CONSUMED_PERC = 80            # texto considered consumed at >= 80% scrolled
 
 
-def _days_without_access(student):
-    last = (Interactions
-            .select(fn.MAX(Interactions.interaction_date))
-            .where(Interactions.student_id == student)
-            .scalar())
-    if not last:
+def _as_date(value):
+    """Normaliza um valor de data/hora (date, datetime ou string do SQLite)
+    para datetime.date, ou None."""
+    if not value:
         return None
-    if isinstance(last, str):  # SQLite returns strings for aggregated dates
-        last = datetime.date.fromisoformat(last.replace("/", "-"))
-    if isinstance(last, datetime.datetime):
-        last = last.date()
-    return (datetime.date.today() - last).days
+    if isinstance(value, str):  # SQLite devolve strings em agregações
+        value = value.replace("/", "-")
+        try:
+            return datetime.date.fromisoformat(value[:10])
+        except ValueError:
+            return None
+    if isinstance(value, datetime.datetime):
+        return value.date()
+    return value  # já é datetime.date
+
+
+def _days_without_access(student):
+    """Dias desde a última atividade do aluno (A2).
+
+    Antes derivava só de `interactions`, que o front novo quase não alimenta
+    (só ao abrir o assistente / clicar em carrossel). Um aluno que lê, assiste
+    vídeo e responde quiz todo dia — sem tocar num carrossel — aparecia como
+    inativo, e a regra de MAIOR prioridade do agente disparava um falso "há N
+    dias sem acessar". Agora a inatividade considera TODO sinal de estudo:
+    interações, leitura de OVA, consumo de mídia e tentativas de quiz."""
+    candidates = [
+        Interactions.select(fn.MAX(Interactions.interaction_date))
+                    .where(Interactions.student_id == student).scalar(),
+        OVAProgress.select(fn.MAX(OVAProgress.last_access))
+                   .where(OVAProgress.student_id == student).scalar(),
+        ResourceProgress.select(fn.MAX(ResourceProgress.last_access))
+                        .where(ResourceProgress.student_id == student).scalar(),
+        Attempts.select(fn.MAX(Attempts.attempt_time))
+                .where(Attempts.student_id == student).scalar(),
+    ]
+    dates = [d for d in (_as_date(c) for c in candidates) if d is not None]
+    if not dates:
+        return None
+    return (datetime.date.today() - max(dates)).days
 
 
 def _competency_statuses(student):

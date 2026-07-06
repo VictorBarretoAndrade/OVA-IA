@@ -48,7 +48,10 @@ export const clearSession = () => {
   localStorage.removeItem("student_id");
 };
 
-async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: { method?: string; body?: unknown; keepalive?: boolean } = {}
+): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -56,6 +59,10 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
   const response = await fetch(BASE_URL + path, {
     method: options.method ?? "GET",
     headers,
+    // keepalive permite que o POST sobreviva ao fechamento da aba (usado no
+    // flush final do rastreio de leitura). Diferente do navigator.sendBeacon,
+    // o fetch keepalive mantém o header Authorization (aluno vem do token).
+    keepalive: options.keepalive,
     // A API espera o payload embrulhado em um array (convenção do projeto)
     body: options.body !== undefined ? JSON.stringify([options.body]) : undefined
   });
@@ -278,12 +285,18 @@ export const saveResourceProgress = (data: {
   completed?: boolean;
 }) => request<string>("/progress/resource", { method: "POST", body: data });
 
-export const saveOVAProgress = (data: {
-  ova_id: number;
-  read_time?: number;
-  perc_scrolled?: number;
-  completed?: boolean;
-}) => request<string>("/progress/ova", { method: "POST", body: data });
+// Contrato novo (A1): o tempo de leitura vai como `seconds_delta` (segundos
+// desde o último sync) e o servidor ACUMULA. `keepalive` é usado no flush final
+// (unload) para não perder os últimos segundos ao fechar a aba.
+export const saveOVAProgress = (
+  data: {
+    ova_id: number;
+    seconds_delta?: number;
+    perc_scrolled?: number;
+    completed?: boolean;
+  },
+  opts: { keepalive?: boolean } = {}
+) => request<string>("/progress/ova", { method: "POST", body: data, keepalive: opts.keepalive });
 
 export const getOVAQuestions = (ovaId: number, studentId: number) =>
   request<OvaQuestion[]>("/question/ova", { method: "POST", body: { ova_id: ovaId, student_id: studentId } });
@@ -294,10 +307,11 @@ export const answerQuestion = (studentId: number, questionId: number, selected: 
     body: { student_id: studentId, question_id: questionId, selected }
   });
 
-export const registerInteraction = (studentId: number, ovaId: number, action: string) =>
+// A3: o aluno é resolvido pelo token no backend — não enviamos student_id.
+export const registerInteraction = (ovaId: number, action: string) =>
   request<string>("/interaction/register", {
     method: "POST",
-    body: { student_id: studentId, ova_id: ovaId, action }
+    body: { ova_id: ovaId, action }
   });
 
 // ---------------------------------------------------------------------------
