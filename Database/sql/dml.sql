@@ -15,6 +15,7 @@ values
 (2, 1, 2);
 
 insert into students
+(student_id, ra, student_password, student_name, course_id, is_admin)
 values
 (1, "1", "1", "Eduardo", 1, false),
 (2, "2", "2", "Gabriel", 1, false),

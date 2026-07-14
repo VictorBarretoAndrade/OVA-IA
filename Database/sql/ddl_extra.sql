@@ -83,6 +83,22 @@ CREATE TABLE personalized_ova (
     FOREIGN KEY (target_competency_id) REFERENCES competencies(competency_id) ON DELETE SET NULL ON UPDATE CASCADE
 );
 
+-- MELHORIA (Roteiro Cena 4): papel do usuário (habilita o Painel do Tutor).
+ALTER TABLE students ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'aluno';
+
+-- MELHORIA (Roteiro Cena 4): central de alertas preventivos do tutor.
+-- (`read` é palavra reservada no MySQL — sempre referenciada com crase.)
+CREATE TABLE alerts (
+    alert_id INT PRIMARY KEY AUTO_INCREMENT,
+    student_id INT,
+    type VARCHAR(50),
+    message TEXT,
+    severity VARCHAR(20),
+    created_at DATETIME,
+    `read` BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
 -- Itens selecionados da OVA personalizada: cada linha aponta para um recurso
 -- OU uma questão do banco de conteúdo existente (sem duplicar o conteúdo).
 CREATE TABLE personalized_ova_item (

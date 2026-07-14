@@ -59,3 +59,62 @@ values
 -- Competência 6 — máximos e mínimos
 (27, 3, "video", "Reforço: Máximos e mínimos com derivadas",             "https://www.youtube.com/watch?v=pInFesXIfg8", "youtube", NULL, 6),
 (28, 3, "texto", "Reforço (texto): Otimização e pontos críticos",        "https://pt.khanacademy.org/math/calculus-1/cs1-applications-of-derivatives", "link", NULL, 6);
+
+-- ===========================================================================
+-- NOVA DISCIPLINA (roteiro do vídeo, Cena 2): Fundamentos de Computação na Nuvem
+-- Disciplina + oferta + OVA + competências + questões + recursos. O leitor de
+-- OVA novo renderiza cloud_computing.html automaticamente.
+-- ===========================================================================
+insert into course_subjects (subject_id, subject_name) values
+(3, "Fundamentos de Computação na Nuvem");
+
+insert into offerings (offering_id, course_id, subject_id) values
+(3, 1, 3);
+
+insert into ovas (ova_id, ova_name, link, num_interactions, subject_id) values
+(4, "Fundamentos de Computação na Nuvem", "cloud_computing.html", 0, 3);
+
+insert into competencies (competency_id, competency_description, subject_id) values
+(7, "Compreender os modelos de serviço da computação em nuvem (IaaS, PaaS, SaaS)", 3),
+(8, "Distinguir os modelos de implantação: nuvem pública, privada e híbrida", 3),
+(9, "Reconhecer benefícios econômicos e desafios de segurança da nuvem", 3);
+
+insert into questions (question_id, statement, alternatives, answer, ova_id, competency_id) values
+(27, "Qual modelo de serviço entrega máquinas virtuais, rede e armazenamento, deixando o sistema operacional e as aplicações sob responsabilidade do cliente?",
+'{ "alternatives": ["SaaS", "PaaS", "IaaS", "On-premise"] }', "c", 4, 7),
+(28, "No modelo SaaS, o que o cliente normalmente gerencia?",
+'{ "alternatives": ["A infraestrutura física", "O sistema operacional dos servidores", "Apenas o uso da aplicação", "O ambiente de execução"] }', "c", 4, 7),
+(29, "Como se chama o modelo de implantação que combina nuvem pública e privada?",
+'{ "alternatives": ["Nuvem comunitária", "Nuvem híbrida", "Nuvem dedicada", "Multi-tenant"] }', "b", 4, 8),
+(30, "Uma vantagem da nuvem pública em relação à privada é:",
+'{ "alternatives": ["Maior controle sobre o hardware", "Menor custo inicial e maior elasticidade", "Isolamento físico garantido", "Dispensar a internet"] }', "b", 4, 8),
+(31, "Qual modelo econômico caracteriza a computação na nuvem?",
+'{ "alternatives": ["Licença perpétua", "Pagamento pelo uso (pay-as-you-go)", "Compra de servidores físicos", "Assinatura vitalícia obrigatória"] }', "b", 4, 9),
+(32, "No modelo de responsabilidade compartilhada, quem configura acessos e criptografa os dados?",
+'{ "alternatives": ["Somente o provedor de nuvem", "O cliente", "O fornecedor de internet", "Ninguém"] }', "b", 4, 9);
+
+-- Recursos do OVA 4 (consumo rastreado pelos players)
+insert into resources
+(resource_id, ova_id, resource_type, resource_title, resource_url, media_type, duration_seconds, competency_id)
+values
+(29, 4, "texto",     "Leitura: O que é Computação na Nuvem",          NULL, NULL, NULL, 7),
+(30, 4, "video",     "Vídeo: Computação em nuvem explicada",          "https://www.youtube.com/watch?v=97l0Ahu2efE", "youtube", NULL, 7),
+(31, 4, "podcast",   "Podcast: Nuvem na prática (ep. 1)",             "https://www.soundhelix.com/examples/audio/SoundHelix-Song-4.mp3", "upload", 360, 8),
+(32, 4, "quiz",      "Quiz: Computação na Nuvem",                     NULL, NULL, NULL, NULL),
+(33, 4, "atividade", "Atividade prática: suba uma VM gratuita na AWS/Azure", NULL, NULL, NULL, NULL),
+-- Banco de remediação por competência (usado pelo agente de OVA de reforço)
+(34, 4, "video", "Reforço: IaaS, PaaS e SaaS em 5 minutos",          "https://www.youtube.com/watch?v=N0SYCyS2xZA", "youtube", NULL, 7),
+(35, 4, "texto", "Reforço (texto): O que é computação em nuvem (AWS)", "https://aws.amazon.com/pt/what-is-cloud-computing/", "link", NULL, 7),
+(36, 4, "video", "Reforço: Nuvem pública, privada e híbrida",        "https://www.youtube.com/watch?v=ymZo-ZwXFw8", "youtube", NULL, 8),
+(37, 4, "texto", "Reforço (texto): Microsoft Azure (portal)", "https://azure.microsoft.com/pt-br", "link", NULL, 8),
+(38, 4, "video", "Reforço: Segurança e responsabilidade compartilhada", "https://www.youtube.com/watch?v=97l0Ahu2efE", "youtube", NULL, 9),
+(39, 4, "texto", "Reforço (texto): Dicionário — o que é computação em nuvem (Azure)", "https://azure-microsoft-com.translate.goog/en-us/resources/cloud-computing-dictionary/what-is-cloud-computing?_x_tr_sl=en&_x_tr_tl=pt&_x_tr_hl=pt&_x_tr_pto=tc", "link", NULL, 9);
+
+-- MELHORIA (Roteiro Cena 4): papéis. Gabriel (RA 2) vira TUTOR; Sanval (RA 4),
+-- que já era admin, recebe o papel 'admin'. Os demais ficam 'aluno' (default).
+update students set role = 'tutor' where student_id = 2;
+update students set role = 'admin' where student_id = 4;
+
+-- NOTA: sem seed de atividade — a demo começa do ZERO. O aluno faz o OVA ao
+-- vivo (lê, assiste, responde o quiz) e, ao errar questões, o agente EduBot
+-- passa a recomendar a OVA de reforço (quiz extra) daquela competência.

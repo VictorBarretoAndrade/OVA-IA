@@ -10,17 +10,14 @@ Este módulo liga o frontend React (feito no Lovable) ao backend real:
   - POST /question/answer     -> correção server-side (B5)
   - GET  /edubot/recommendation -> agente EduBot (4.3)
 
-Convenções herdadas da API: o corpo das requisições é um array com um único
-objeto ([data]) e o token vai no header Authorization: Bearer.
+Convenções da API: o corpo das requisições é o objeto JSON puro (o envelope
+[data] legado foi aposentado — A16) e o token vai no header Authorization: Bearer.
 */
 
-const PORT = 5010;
-const HOST = window.location.hostname || "localhost";
-const BASE_URL = `http://${HOST}:${PORT}`;
+import { API_BASE_URL as BASE_URL } from "./config";
 
-// Mesma chave usada pelo frontend clássico (files/js/request.js): como o app
-// React é servido pela MESMA origem do Apache (http://localhost:8010/app/),
-// o localStorage é compartilhado e a sessão vale nos dois frontends.
+// Chaves de sessão do app. `token` era compartilhada com o front clássico
+// (aposentado na Fase 5 — A17); mantida por ser o Bearer que o backend espera.
 const TOKEN_KEY = "token";
 const SESSION_KEY = "edubot.session";
 
@@ -40,17 +37,20 @@ export const getSession = (): Session | null => {
   }
 };
 
+// Chaves legadas que o front clássico gravava; o app novo não as escreve mais
+// (Fase 5 — A17), mas as removemos no logout para limpar sessões antigas.
+const LEGACY_KEYS = ["logged", "is_admin", "course_id", "student_id"];
+
 export const clearSession = () => {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(SESSION_KEY);
-  // chaves do frontend clássico (login.html/iframe.html)
-  localStorage.removeItem("logged");
-  localStorage.removeItem("is_admin");
-  localStorage.removeItem("course_id");
-  localStorage.removeItem("student_id");
+  LEGACY_KEYS.forEach((k) => localStorage.removeItem(k));
 };
 
-async function request<T>(path: string, options: { method?: string; body?: unknown } = {}): Promise<T> {
+async function request<T>(
+  path: string,
+  options: { method?: string; body?: unknown; keepalive?: boolean } = {}
+): Promise<T> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
   const token = getToken();
   if (token) headers.Authorization = `Bearer ${token}`;
@@ -58,8 +58,14 @@ async function request<T>(path: string, options: { method?: string; body?: unkno
   const response = await fetch(BASE_URL + path, {
     method: options.method ?? "GET",
     headers,
-    // A API espera o payload embrulhado em um array (convenção do projeto)
-    body: options.body !== undefined ? JSON.stringify([options.body]) : undefined
+    // keepalive permite que o POST sobreviva ao fechamento da aba (usado no
+    // flush final do rastreio de leitura). Diferente do navigator.sendBeacon,
+    // o fetch keepalive mantém o header Authorization (aluno vem do token).
+    keepalive: options.keepalive,
+    // Contrato novo (A16): payload é o objeto JSON puro. O envelope [data]
+    // (herança do front jQuery) foi aposentado; o backend ainda o aceita por
+    // compatibilidade até o legado sair (Fase 5).
+    body: options.body !== undefined ? JSON.stringify(options.body) : undefined
   });
 
   if (response.status === 401) {
@@ -80,6 +86,14 @@ export class ApiError extends Error {
     this.status = status;
   }
 }
+
+// Fase 4 (A12): idioma atual (mesma chave do i18n.tsx). As rotas de CONTEÚDO
+// recebem ?lang= e o backend serve as traduções do banco com fallback PT —
+// o dicionário manual contentDict.ts foi aposentado.
+const LANG_KEY = "edubot.lang";
+const currentLang = () => (localStorage.getItem(LANG_KEY) === "en" ? "en" : "pt");
+const withLang = (path: string) =>
+  `${path}${path.includes("?") ? "&" : "?"}lang=${currentLang()}`;
 
 // ---------------------------------------------------------------------------
 // Tipos espelhando as respostas do backend
@@ -113,6 +127,10 @@ export interface CompetencyState {
   acertos: number;
   total_questoes: number;
   status: "não iniciada" | "em desenvolvimento" | "desenvolvida";
+  // Desempenho no quiz por competência (vindos de `attempts` no backend)
+  tentativas?: number;
+  erros?: number;
+  taxa_erro?: number | null;
 }
 
 export interface InterventionState {
@@ -123,7 +141,7 @@ export interface InterventionState {
 }
 
 export interface StudentProfile {
-  estudante: { student_id: number; nome: string; ra: string; curso: string | null };
+  estudante: { student_id: number; nome: string; ra: string; curso: string | null; role: string };
   dias_sem_acesso: number | null;
   recursos: {
     total: number;
@@ -187,19 +205,42 @@ export async function login(ra: string, password: string): Promise<Session> {
   };
   localStorage.setItem(TOKEN_KEY, data.token);
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  // Compatibilidade com o frontend clássico: permite abrir o leitor de OVAs
-  // (iframe.html) já autenticado, pois ambos vivem na mesma origem (Apache)
-  localStorage.setItem("logged", "true");
-  localStorage.setItem("is_admin", JSON.stringify(data.is_admin));
-  localStorage.setItem("course_id", String(data.ids.course_id));
-  localStorage.setItem("student_id", String(data.ids.student_id));
+  // (Fase 5 — A17) As chaves de compatibilidade com o front clássico deixaram
+  // de ser gravadas: o app React é único e resolve tudo via SESSION_KEY/token.
   return session;
 }
 
-export const getMe = () => request<StudentProfile>("/student/me");
+export const getMe = () => request<StudentProfile>(withLang("/student/me"));
 
 export const getEdubotRecommendation = () =>
-  request<{ recommendation: Recommendation }>("/edubot/recommendation");
+  request<{ recommendation: Recommendation }>(withLang("/edubot/recommendation"));
+
+// A13 — proatividade: intervenções NÃO LIDAS que o EduBot criou por conta
+// própria (pós-quiz, conclusão de OVA, varredura agendada). O dashboard as
+// exibe para o aluno; `ack` marca como lida.
+export interface UnreadIntervention {
+  intervention_id: number;
+  data: string;
+  tipo: string;
+  descricao: string | null;
+  resultado: string | null;
+}
+
+export const getInterventions = () =>
+  request<{ interventions: UnreadIntervention[] }>("/edubot/interventions");
+
+export const ackIntervention = (interventionId: number) =>
+  request<{ ok: boolean }>("/edubot/intervention/ack", {
+    method: "POST",
+    body: { intervention_id: interventionId }
+  });
+
+// Fala do EduBot (coach) sobre o progresso, gerada por IA sob demanda (Bedrock).
+// message=null quando a IA não está disponível — o frontend usa o texto local.
+export const getCoachMessage = (lang: string) =>
+  request<{ message: string | null; ai: boolean; model_id?: string }>(
+    `/edubot/coach-message?lang=${lang}`
+  );
 
 // ---------------------------------------------------------------------------
 // MELHORIA (OVA personalizada): agente de tool-use que monta a OVA de reforço
@@ -241,13 +282,27 @@ export interface CreatedPersonalizedOVA {
 export const createPersonalizedOVA = () =>
   request<CreatedPersonalizedOVA>("/edubot/personalized-ova", { method: "POST" });
 
+// Materiais externos (artigos científicos) recomendados por competência
+export interface ExternalResource {
+  titulo: string;
+  url: string | null;
+  fonte: string;
+  ano: number | null;
+}
+
+export const getExternalResources = (competencyId: number) =>
+  request<{ competency_id: number; competencia: string; resultados: ExternalResource[] }>(
+    `/edubot/external-resources?competency_id=${competencyId}`
+  );
+
 export const listPersonalizedOVAs = () =>
-  request<PersonalizedOVASummary[]>("/personalized-ova");
+  request<PersonalizedOVASummary[]>(withLang("/personalized-ova"));
 
 export const getPersonalizedOVA = (id: number) =>
-  request<PersonalizedOVAContent>(`/personalized-ova/${id}`);
+  request<PersonalizedOVAContent>(withLang(`/personalized-ova/${id}`));
 
-export const getOVAResources = (ovaId: number) => request<OvaResource[]>(`/ova/${ovaId}/resources`);
+export const getOVAResources = (ovaId: number) =>
+  request<OvaResource[]>(withLang(`/ova/${ovaId}/resources`));
 
 export const saveResourceProgress = (data: {
   resource_id: number;
@@ -256,24 +311,90 @@ export const saveResourceProgress = (data: {
   completed?: boolean;
 }) => request<string>("/progress/resource", { method: "POST", body: data });
 
-export const saveOVAProgress = (data: {
-  ova_id: number;
-  read_time?: number;
-  perc_scrolled?: number;
-  completed?: boolean;
-}) => request<string>("/progress/ova", { method: "POST", body: data });
+// Contrato novo (A1): o tempo de leitura vai como `seconds_delta` (segundos
+// desde o último sync) e o servidor ACUMULA. `keepalive` é usado no flush final
+// (unload) para não perder os últimos segundos ao fechar a aba.
+export const saveOVAProgress = (
+  data: {
+    ova_id: number;
+    seconds_delta?: number;
+    perc_scrolled?: number;
+    completed?: boolean;
+  },
+  opts: { keepalive?: boolean } = {}
+) => request<string>(withLang("/progress/ova"), { method: "POST", body: data, keepalive: opts.keepalive });
 
 export const getOVAQuestions = (ovaId: number, studentId: number) =>
-  request<OvaQuestion[]>("/question/ova", { method: "POST", body: { ova_id: ovaId, student_id: studentId } });
+  request<OvaQuestion[]>(withLang("/question/ova"), { method: "POST", body: { ova_id: ovaId, student_id: studentId } });
 
 export const answerQuestion = (studentId: number, questionId: number, selected: string) =>
-  request<{ is_correct: boolean }>("/question/answer", {
+  request<{ is_correct: boolean }>(withLang("/question/answer"), {
     method: "POST",
     body: { student_id: studentId, question_id: questionId, selected }
   });
 
-export const registerInteraction = (studentId: number, ovaId: number, action: string) =>
+// A3: o aluno é resolvido pelo token no backend — não enviamos student_id.
+export const registerInteraction = (ovaId: number, action: string) =>
   request<string>("/interaction/register", {
     method: "POST",
-    body: { student_id: studentId, ova_id: ovaId, action }
+    body: { ova_id: ovaId, action }
+  });
+
+// ---------------------------------------------------------------------------
+// Painel do Tutor (Cena 4) — visão de turma + central de alertas
+// ---------------------------------------------------------------------------
+export interface TurmaStudent {
+  student_id: number;
+  nome: string;
+  ra: string;
+  dias_sem_acesso: number | null;
+  consumo_percentual: number;
+  taxa_erro: number | null;
+  alertas_abertos: number;
+}
+
+export interface TutorAlert {
+  alert_id: number;
+  student_id: number;
+  aluno: string;
+  type: string;
+  message: string;
+  severity: string;
+  created_at: string;
+  read: boolean;
+}
+
+export const getTurma = () => request<{ total: number; alunos: TurmaStudent[] }>("/tutor/turma");
+export const getTutorAlerts = () => request<{ alertas: TutorAlert[] }>("/tutor/alerts");
+export const evaluateTurma = () =>
+  request<{ alertas_criados: number }>("/tutor/evaluate", { method: "POST" });
+
+// ---------------------------------------------------------------------------
+// Tutor IA por OVA — chat de tutoria restrito ao conteúdo do OVA consumido
+// ---------------------------------------------------------------------------
+export interface TutorMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
+export interface TutorSource {
+  secao: string;
+  trecho: string;
+}
+
+export interface TutorReply {
+  reply: string;
+  ova_id: number;
+  ova_name: string;
+  model_id: string;
+  mock: boolean;
+  sources: TutorSource[];
+}
+
+// Envia a pergunta + o histórico + o material (context) do OVA. O backend
+// responde como tutor preso ao conteúdo (ver edubot_agent/tutor.py).
+export const tutorChat = (ovaId: number, context: string, messages: TutorMessage[]) =>
+  request<TutorReply>(withLang("/edubot/tutor-chat"), {
+    method: "POST",
+    body: { ova_id: ovaId, context, messages }
   });

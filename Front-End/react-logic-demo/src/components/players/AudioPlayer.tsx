@@ -8,6 +8,7 @@ e no fim.
 */
 import { Headphones } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "../../i18n";
 import { MediaProgress } from "./VideoPlayer";
 
 const COMPLETED_PERC = 90;
@@ -27,6 +28,7 @@ export const AudioPlayer = ({ url, title, durationSeconds, initialSeconds, onPro
   const lastReportedRef = useRef(initialSeconds);
   const tickerRef = useRef<number | null>(null);
   const [listened, setListened] = useState(initialSeconds);
+  const t = useT();
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -92,7 +94,7 @@ export const AudioPlayer = ({ url, title, durationSeconds, initialSeconds, onPro
       </h3>
       <audio ref={audioRef} controls preload="metadata" src={url ?? undefined} className="mt-3 w-full" />
       <div className="mt-2 text-sm text-muted">
-        Tempo de escuta: {minutes}m{String(seconds).padStart(2, "0")}s{total ? ` (${perc}%)` : ""}
+        {t("Tempo de escuta", "Listening time")}: {minutes}m{String(seconds).padStart(2, "0")}s{total ? ` (${perc}%)` : ""}
       </div>
     </div>
   );

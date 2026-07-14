@@ -12,15 +12,17 @@ classificado por competência). Esta tela:
 O consumo é persistido em resource_progress / attempts, realimentando o perfil
 e o próprio EduBot.
 */
-import { ArrowLeft, ClipboardCheck, FileText, LoaderCircle, Sparkles, Stars } from "lucide-react";
+import { ArrowLeft, ClipboardCheck, ExternalLink, FileText, GraduationCap, LoaderCircle, Sparkles, Stars } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  ExternalResource,
   OvaResource,
   PersonalizedOVAContent,
   PersonalizedOVASummary,
   StudentProfile,
   answerQuestion,
   createPersonalizedOVA,
+  getExternalResources,
   getPersonalizedOVA,
   getSession,
   listPersonalizedOVAs,
@@ -28,6 +30,8 @@ import {
 } from "../services/api";
 import { AudioPlayer } from "./players/AudioPlayer";
 import { MediaProgress, VideoPlayer } from "./players/VideoPlayer";
+import { useToast } from "./ui/Toast";
+import { useT } from "../i18n";
 
 interface ReforcoProps {
   profile: StudentProfile;
@@ -37,15 +41,17 @@ interface ReforcoProps {
 const LETTERS = "abcdefghijklmnopqrstuvwxyz";
 
 export const Reforco = ({ onTracked }: ReforcoProps) => {
+  const t = useT();
   const [ovas, setOvas] = useState<PersonalizedOVASummary[]>([]);
   const [active, setActive] = useState<PersonalizedOVAContent | null>(null);
   const [generating, setGenerating] = useState(false);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const refreshList = () =>
-    listPersonalizedOVAs().then(setOvas).catch(() => setError("Não foi possível listar as OVAs de reforço."));
+    listPersonalizedOVAs().then(setOvas).catch(() => setError(t("Não foi possível listar as OVAs de reforço.", "Couldn't list the reinforcement OVAs.")));
 
   useEffect(() => {
     refreshList();
@@ -54,10 +60,10 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
   const generate = async () => {
     setGenerating(true);
     setError(null);
-    setFeedback("O EduBot está diagnosticando e montando sua trilha de reforço...");
+    setFeedback(t("O EduBot está diagnosticando e montando sua trilha de reforço...", "EduBot is diagnosing and building your reinforcement track..."));
     try {
       const created = await createPersonalizedOVA();
-      setFeedback(created.mensagem_aluno || "OVA de reforço criada!");
+      setFeedback(created.mensagem_aluno || t("OVA de reforço criada!", "Reinforcement OVA created!"));
       await refreshList();
       await open(created.personalized_ova_id);
       onTracked();
@@ -66,8 +72,8 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
       const msg = (err as { message?: string }).message ?? "";
       setError(
         msg.includes("conteúdo de reforço")
-          ? "Não há conteúdo de reforço para o seu assunto fraco no momento."
-          : "Não foi possível gerar a OVA de reforço agora."
+          ? t("Não há conteúdo de reforço para o seu assunto fraco no momento.", "There's no reinforcement content for your weak topic right now.")
+          : t("Não foi possível gerar a OVA de reforço agora.", "Couldn't generate the reinforcement OVA right now.")
       );
     } finally {
       setGenerating(false);
@@ -80,7 +86,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
     try {
       setActive(await getPersonalizedOVA(id));
     } catch {
-      setError("Não foi possível abrir a OVA de reforço.");
+      setError(t("Não foi possível abrir a OVA de reforço.", "Couldn't open the reinforcement OVA."));
     } finally {
       setLoadingId(null);
     }
@@ -92,7 +98,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
       perc_consumed: state.perc ?? 0,
       seconds_consumed: state.seconds ?? 0,
       completed: state.completed ?? false
-    }).catch((err) => console.error(err));
+    }).catch(() => toast.error(t("Não foi possível salvar seu progresso. Verifique a conexão.", "Couldn't save your progress. Check your connection.")));
 
   // ----- Visualização de uma OVA de reforço aberta -------------------------
   if (active) {
@@ -102,13 +108,13 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
           onClick={() => setActive(null)}
           className="flex items-center gap-2 text-muted transition hover:text-ink"
         >
-          <ArrowLeft size={18} /> Voltar para minhas OVAs de reforço
+          <ArrowLeft size={18} /> {t("Voltar para minhas OVAs de reforço", "Back to my reinforcement OVAs")}
         </button>
 
         <div className="rounded-[8px] border border-line bg-white p-8 shadow-soft">
           {active.competencia && (
             <span className="rounded-[8px] bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-800">
-              Foco: {active.competencia.nome}
+              {t("Foco:", "Focus:")} {active.competencia.nome}
             </span>
           )}
           <h1 className="mt-3 text-3xl font-bold text-ink">{active.titulo}</h1>
@@ -120,7 +126,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
         </div>
 
         <div>
-          <h2 className="mb-3 text-xl font-bold text-ink">Conteúdo de reforço</h2>
+          <h2 className="mb-3 text-xl font-bold text-ink">{t("Conteúdo de reforço", "Reinforcement content")}</h2>
           <div className="space-y-4">
             {active.recursos.map((resource) => {
               if (resource.resource_type === "video") {
@@ -164,7 +170,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
                       onClick={() => saveProgress(resource, { perc: 100, completed: true })}
                       className="rounded-[8px] border border-brand px-4 py-2 font-semibold text-brand transition hover:bg-indigo-50"
                     >
-                      {resource.completed ? "Reler" : "Abrir leitura"}
+                      {resource.completed ? t("Reler", "Read again") : t("Abrir leitura", "Open reading")}
                     </a>
                   </div>
                 );
@@ -181,10 +187,12 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
               return null;
             })}
             {active.recursos.length === 0 && (
-              <p className="rounded-[8px] border border-line bg-white p-6 text-muted">Nenhum recurso nesta trilha.</p>
+              <p className="rounded-[8px] border border-line bg-white p-6 text-muted">{t("Nenhum recurso nesta trilha.", "No resources in this track.")}</p>
             )}
           </div>
         </div>
+
+        {active.competencia && <ExternalSources competencyId={active.competencia.competency_id} />}
 
         {active.questoes.length > 0 && (
           <ReforcoQuiz questions={active.questoes} onTracked={onTracked} />
@@ -200,10 +208,13 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <h1 className="flex items-center gap-2 text-3xl font-bold text-ink">
-              <Stars className="text-brand" /> OVA de Reforço
+              <Stars className="text-brand" /> {t("OVA de Reforço", "Reinforcement OVA")}
             </h1>
             <p className="mt-2 text-muted">
-              O EduBot identifica o assunto em que você foi pior e monta uma trilha de reforço só para você.
+              {t(
+                "O EduBot identifica o assunto em que você foi pior e monta uma trilha de reforço só para você.",
+                "EduBot spots the topic you did worst on and builds a reinforcement track just for you."
+              )}
             </p>
           </div>
           <button
@@ -212,7 +223,7 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
             className="flex h-12 items-center gap-2 rounded-[8px] bg-brand px-5 font-bold text-white disabled:bg-slate-300"
           >
             {generating ? <LoaderCircle className="animate-spin" size={20} /> : <Sparkles size={20} />}
-            Gerar OVA de reforço
+            {t("Gerar OVA de reforço", "Generate reinforcement OVA")}
           </button>
         </div>
         {feedback && <p className="mt-5 rounded-[8px] bg-indigo-50/60 p-4 text-slate-800">{feedback}</p>}
@@ -236,13 +247,13 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
             {loadingId === pova.personalized_ova_id ? (
               <LoaderCircle className="animate-spin text-brand" size={20} />
             ) : (
-              <span className="rounded-[8px] bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-800">Abrir</span>
+              <span className="rounded-[8px] bg-indigo-50 px-4 py-2 text-sm font-semibold text-indigo-800">{t("Abrir", "Open")}</span>
             )}
           </button>
         ))}
         {ovas.length === 0 && (
           <p className="rounded-[8px] border border-line bg-white p-6 text-muted">
-            Nenhuma OVA de reforço ainda — clique em <strong>"Gerar OVA de reforço"</strong>.
+            {t("Nenhuma OVA de reforço ainda — clique em", "No reinforcement OVA yet — click")} <strong>"{t("Gerar OVA de reforço", "Generate reinforcement OVA")}"</strong>.
           </p>
         )}
       </div>
@@ -250,8 +261,66 @@ export const Reforco = ({ onTracked }: ReforcoProps) => {
   );
 };
 
+// Materiais externos (artigos científicos) por competência — Crossref (Cena 4)
+const ExternalSources = ({ competencyId }: { competencyId: number }) => {
+  const t = useT();
+  const [items, setItems] = useState<ExternalResource[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    getExternalResources(competencyId)
+      .then((data) => active && setItems(data.resultados))
+      .catch(() => active && setItems([]))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, [competencyId]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-muted">
+        <LoaderCircle className="animate-spin" size={16} /> {t("Buscando materiais externos...", "Searching external materials...")}
+      </div>
+    );
+  }
+  if (items.length === 0) return null;
+
+  return (
+    <div>
+      <h2 className="mb-1 flex items-center gap-2 text-xl font-bold text-ink">
+        <GraduationCap size={20} className="text-brand" /> {t("Materiais externos", "External materials")}
+      </h2>
+      <p className="mb-3 text-sm text-muted">{t("Artigos científicos relacionados a este assunto (fonte: Crossref).", "Scientific articles related to this topic (source: Crossref).")}</p>
+      <div className="space-y-3">
+        {items.map((item, index) => (
+          <a
+            key={index}
+            href={item.url ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-start justify-between gap-4 rounded-[8px] border border-line bg-white p-5 transition hover:border-brand"
+          >
+            <span>
+              <span className="font-semibold text-ink">{item.titulo}</span>
+              <span className="mt-1 block text-sm text-muted">
+                {item.fonte}
+                {item.ano ? ` · ${item.ano}` : ""}
+              </span>
+            </span>
+            <ExternalLink size={18} className="mt-1 shrink-0 text-brand" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // Cartão de atividade prática com botão de conclusão (estado local)
 const ActivityCard = ({ resource, onComplete }: { resource: OvaResource; onComplete: () => void }) => {
+  const t = useT();
   const [done, setDone] = useState(resource.completed);
   return (
     <div className="flex items-center justify-between rounded-[8px] border border-line bg-white p-5">
@@ -269,7 +338,7 @@ const ActivityCard = ({ resource, onComplete }: { resource: OvaResource; onCompl
           done ? "bg-emerald-100 text-emerald-700" : "border border-emerald-500 text-emerald-700 hover:bg-emerald-50"
         }`}
       >
-        {done ? "Concluída ✓" : "Marcar como concluída"}
+        {done ? t("Concluída ✓", "Completed ✓") : t("Marcar como concluída", "Mark as completed")}
       </button>
     </div>
   );
@@ -283,15 +352,18 @@ const ReforcoQuiz = ({
   questions: PersonalizedOVAContent["questoes"];
   onTracked: () => void;
 }) => {
+  const t = useT();
   const [answers, setAnswers] = useState<Record<number, number>>({});
   const [feedback, setFeedback] = useState<Record<number, boolean>>({});
   const [submitting, setSubmitting] = useState(false);
   const session = getSession();
+  const toast = useToast();
 
   const finish = async () => {
     if (!session) return;
     setSubmitting(true);
     const newFeedback: Record<number, boolean> = {};
+    let failed = false;
     for (const question of questions) {
       const selected = LETTERS[answers[question.question_id]];
       try {
@@ -299,16 +371,18 @@ const ReforcoQuiz = ({
         newFeedback[question.question_id] = graded.is_correct;
       } catch (err) {
         console.error(err);
+        failed = true;
       }
     }
     setFeedback(newFeedback);
     setSubmitting(false);
+    if (failed) toast.error(t("Algumas respostas não puderam ser corrigidas. Tente novamente.", "Some answers couldn't be graded. Try again."));
     onTracked();
   };
 
   return (
     <div>
-      <h2 className="mb-3 text-xl font-bold text-ink">Quiz de fixação</h2>
+      <h2 className="mb-3 text-xl font-bold text-ink">{t("Quiz de fixação", "Practice quiz")}</h2>
       <div className="space-y-5">
         {questions.map((question, index) => {
           const graded = feedback[question.question_id];
@@ -319,7 +393,7 @@ const ReforcoQuiz = ({
                 graded === undefined ? "border-line" : graded ? "border-emerald-300" : "border-rose-300"
               }`}
             >
-              <div className="text-sm font-semibold text-brand">Questão {index + 1}</div>
+              <div className="text-sm font-semibold text-brand">{t("Questão", "Question")} {index + 1}</div>
               <h3 className="mt-2 text-lg font-bold text-ink">{question.statement}</h3>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 {question.alternatives.map((option, optionIndex) => (
@@ -342,7 +416,7 @@ const ReforcoQuiz = ({
               </div>
               {graded !== undefined && (
                 <p className={`mt-3 font-semibold ${graded ? "text-emerald-700" : "text-rose-700"}`}>
-                  {graded ? "Correta!" : "Incorreta."}
+                  {graded ? t("Correta!", "Correct!") : t("Incorreta.", "Incorrect.")}
                 </p>
               )}
             </div>
@@ -354,7 +428,7 @@ const ReforcoQuiz = ({
         disabled={submitting || Object.keys(answers).length < questions.length}
         className="mt-6 h-12 rounded-[8px] bg-coral px-6 font-bold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
       >
-        {submitting ? "Corrigindo no servidor..." : "Finalizar quiz"}
+        {submitting ? t("Corrigindo no servidor...", "Grading on the server...") : t("Finalizar quiz", "Finish quiz")}
       </button>
     </div>
   );
